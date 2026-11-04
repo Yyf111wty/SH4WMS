@@ -1,0 +1,177 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<!--{49cdd9d3-a473-4aef-8190-5dc5bf7b3984}-->
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
+    <title>登录</title>
+    <link href="~/css/default.css" rel="stylesheet" />
+    <link href="~/css/styles.css" rel="stylesheet" />
+    <link href="~/css/login.css" rel="stylesheet" />
+    <link href="~/css/loaders.css" rel="stylesheet" />
+    <link href="~/lib/layui/css/layui.css" rel="stylesheet" />
+    
+    <style>
+
+        .logo-container {
+            width: 350px; /* 固定宽度 */
+            height: 180px; /* 固定高度 */
+            overflow: hidden;
+            /*border-radius: 100%;*/ /* 圆角效果 */
+            /*box-shadow: 0 5px 5px rgba(0, 0, 0, 0.3);*/ /* 阴影效果 */
+            /*margin: 0 auto 20px;*/ /* 垂直居中 */
+            margin-bottom:55px;
+
+        }
+
+            .logo-container img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover; /* 保持宽高比裁剪 */
+            }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* 防止页面滚动 */
+        }
+
+        .carousel-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .carousel-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: 100%  100%; /* 关键：让图片覆盖整个容器 */
+            background-position: center; /* 图片居中显示 */
+            background-repeat: no-repeat; /* 防止图片重复 */
+            opacity: 0;
+            transition: opacity 1s ease-in-out; /* 平滑过渡效果 */
+        }
+
+            .carousel-slide.active {
+                opacity: 1; /* 当前显示的图片 */
+            }
+
+            /* 示例图片，你可以替换成自己的图片 */
+            .carousel-slide:nth-child(1) {
+                background-image: url('../images/banner-1.jpg');
+            }
+
+            .carousel-slide:nth-child(2) {
+                background-image: url('../images/banner-2.jpg');
+            }
+
+            .carousel-slide:nth-child(3) {
+                background-image: url('../images/banner-3.jpg');
+            }
+
+    
+    </style>
+</head>
+<body>
+    <div class="carousel-container">
+        <!-- 每张背景图片作为一个 slide -->
+        <div class="carousel-slide active"></div>
+        <div class="carousel-slide"></div>
+        <div class="carousel-slide"></div>
+
+        <div class='login' >
+            @*<div class='login_title'>
+                <img src="../images/logo.png"/>
+            </div>*@
+            @*<div class="logo-container">
+                <img src="../images/jclogo.jpg" alt="集晨竞价平台">
+            </div>*@
+            <div class='login_title'>
+                <span style="font-size:28px;text-align:center;color: white;font-weight:bold;font-family:'YaHei';">旺宏WMS系统</span>
+            </div>
+
+            <div class='login_fields'  style="opacity:1">
+                <div class='login_fields__user'>
+                    <div class='icon'>
+                        <img alt="" src='../images/user_icon_copy.png' />
+                    </div>
+                    <input name="username" id="userName" placeholder='用户名' maxlength="26" type='text' autocomplete="off" />
+                    <div class='validation'>
+                        <img alt="" src='../images/tick.png' />
+                    </div>
+                </div>
+                <div class='login_fields__password'>
+                    <div class='icon'>
+                        <img alt="" src='../images/lock_icon_copy.png' />
+                    </div>
+                    <input name="pwd" id="pwd" placeholder='密码' maxlength="26" type='text' autocomplete="off" />
+                    <div class='validation'>
+                        <img alt="" src='../images/tick.png' />
+                    </div>
+                </div>
+                <div class='login_fields__submit'>
+                    <input type='button'  id="loginbtn" value='登录' />
+                    @*<input type='button' style="color: burlywood ;"  id="registerbtn" value='注册' />*@
+                    @*<input type='text' style="padding: 10px,50px; width: auto; color: bisque; margin-top: 10px; font-size: 14px; text-align: right " value='找回密码' />*@
+                </div>
+
+                @*<div class='disclaimer'>
+                    <p>&copy; 2025 JiChen All Rights Reserved</p>
+                </div>*@
+
+            </div>
+
+
+        </div>
+      
+        <div class="OverWindows"></div>
+
+    </div>
+
+
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    <script src="~/lib/layui/layui.js"></script>
+    <script src="~/Scripts/login.js"></script>
+    <script>
+        //// JavaScript 控制轮播逻辑
+        //document.addEventListener('DOMContentLoaded', function () {
+        //    const slides = document.querySelectorAll('.carousel-slide');
+        //    let currentIndex = 0;
+        //    const totalSlides = slides.length;
+
+        //    function showNextSlide() {
+        //        // 隐藏当前图片
+        //        slides[currentIndex].classList.remove('active');
+
+        //        // 计算下一张图片的索引
+        //        currentIndex = (currentIndex + 1) % totalSlides;
+
+        //        // 显示下一张图片
+        //        slides[currentIndex].classList.add('active');
+        //    }
+
+        //    // 每3秒切换一张图片
+        //    setInterval(showNextSlide, 3000);
+        //});
+    </script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+
+            <div class="layui-card-body">
+                <div class="layui-row" id="djsrow" style="text-align:center">
+                    <label id="dslbl" style="font-size:24px;font-weight:bold;color:crimson;text-align:center" />                   
+                </div>
+                <div class="layui-row">
+                    <input type="hidden" id="PROJECTCODE" name="PROJECTCODE" class="layui-input">
+                    <input type="hidden" id="type" name="type" class="layui-input">
+                    <table class="layui-hide" id="workfordetail" lay-filter="workfordetail"></table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+    //初始化
+    $(function () {
+        var PROJECTCODE = GetQueryString('PROJECTCODE');
+        var type = GetQueryString('type');
+        var flag = GetQueryString('flag');
+        $("#PROJECTCODE").val(PROJECTCODE);
+        $("#type").val(type);
+        loadDatagrid(PROJECTCODE, type);
+       /* $("#dslbl").text("竞标剩余时间1:");*/
+        var code = $("#PROJECTCODE").val();
+        var type = $("#type").val();
+        startCountdownTimer(code,flag);
+        startTABCountdownTimer(code,type,flag);
+    })
+
+
+    //基本设置
+    function loadDatagrid(PROJECTCODE, type) {
+        var tableCols = [[
+
+            //{ field: 'SOURCEORDER', title: '订单编号', align: 'center', width: 200, sort: true },
+            { field: 'COMPANYNAME', title: '公司名称', align: 'center', sort: true },
+
+            { field: 'PROJECTCODE', title: '项目号', align: 'center', sort: true },
+            { field: 'PROJECTNAME', title: '项目名称', align: 'center', sort: true },
+            { field: 'MYPRICE', title: '出价', align: 'center', sort: true },
+            { field: 'PREPRICE', title: '评级分数', align: 'center', sort: true },
+            { field: 'TRUEPRICE', title: '实际出价', align: 'center', sort: true },
+            //{ field: 'QTY', title: '数量', align: 'center', width: 200, sort: true },
+            { field: 'USERNAME', title: '竞价人', align: 'center', sort: true },
+            { field: 'USERNAME', title: '代表公司', align: 'center', sort: true },
+            {
+                field: 'BIDDTIME', title: '竞价时间', fixed: 'right', align: 'center', sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.BIDDTIME);
+                    }
+            }
+
+        ]
+        ];
+
+        hg.table.datatable('workfordetail', '', '/BIDD/BiddingProject/GetBodyData?PROJECTCODE=' + PROJECTCODE + '&type=' + type, {}, tableCols, '', true, 'full-255');
+      
+    }
+
+    // 启动倒计时定时器
+    //定时刷新排名，刷新剩余时间
+    function startCountdownTimer(ID,flag) {
+        var projectIds = ID;
+        if (flag == "0") {
+
+            $.ajax({
+                async: false,
+                type: "POST",
+                url: '/BIDD/BiddingProject/GetMyData',
+
+                data: { PROJECTCODE: projectIds },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+
+                        //2.重载表格，3.更新剩余时间
+                        var now = new Date(data.starttime).getTime();
+                        var endTime = new Date(data.endtime).getTime();
+                        var diff = endTime - now;
+
+                        // 计算剩余时间
+                        var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                        var livetime = days + '天' + hours + '时' + minutes + '分' + seconds + '秒';
+                        if (diff <= 0) {
+                            $("#dslbl").text("竞标剩余时间:已截止");
+                        }
+                        else {
+                            $("#dslbl").text("竞标剩余时间:" + livetime);
+                        }
+
+
+
+                    }
+                    else {
+                        $("#dslbl").text("获取数据报错");
+
+                    }
+
+                },
+                error: function (data) {
+                    $("#dslbl").text("获取数据报错");
+
+                }
+            })
+
+
+        }
+        else
+        {
+            setInterval(function () {
+
+                // 支持中文
+                // var encodedProjectCode = encodeURIComponent(projectIds);
+                $.ajax({
+                    async: false,
+                    type: "POST",
+                    url: '/BIDD/BiddingProject/GetMyData',
+
+                    data: { PROJECTCODE: projectIds },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+
+                            //2.重载表格，3.更新剩余时间
+                            var now = new Date(data.starttime).getTime();
+                            var endTime = new Date(data.endtime).getTime();
+                            var diff = endTime - now;
+
+                            // 计算剩余时间
+                            var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                            var livetime = days + '天' + hours + '时' + minutes + '分' + seconds + '秒';
+                            if (diff <= 0) {
+                                $("#dslbl").text("竞标剩余时间:已截止");
+                            }
+                            else {
+                                $("#dslbl").text("竞标剩余时间:" + livetime);
+                            }
+
+
+
+                        }
+                        else {
+                            $("#dslbl").text("获取数据报错");
+
+                        }
+
+                    },
+                    error: function (data) {
+                        $("#dslbl").text("获取数据报错");
+
+                    }
+                })
+
+
+
+            }, 1000);
+        }
+      
+    }
+    // 启动倒计时定时器
+    //定时刷新排名，刷新剩余时间
+    function startTABCountdownTimer(PROJECTCODE, type,flag) {
+        var code = PROJECTCODE;
+        var types = type;
+        if (flag == "0") {
+            loadDatagrid(code, types);
+        }
+        else {
+            setInterval(function () {
+
+
+                //var PROJECTCODE = $("#PROJECTCODE").val();
+                //var type = $("#type").val();
+                loadDatagrid(code, types);
+                //location.reload();
+                //hg.table.reload();
+
+
+
+            }, 5000);
+        }
+      
+    }
+
+    //获取参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return (r[2]);
+        return null;
+    }
+   
+    // 重置表格函数
+    function resetTable() {
+        location.reload(); // 简单重置，实际项目中可以更优雅的实现
+    }
+
+</script>

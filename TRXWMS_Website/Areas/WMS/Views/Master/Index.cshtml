@@ -1,0 +1,217 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>物料信息
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchITEMCODE" placeholder="物料规格" class="layui-input">
+                        </div>
+
+                        <div class="layui-inline">
+                            <select id="searchKC" name="searchKC" readonly="true" placeholder="库存状态">
+                                <option value="">库存状态</option>
+                                <option value="库存充足">库存充足</option>
+                                <option value="库存不足">库存不足</option>
+                            </select>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div">
+                </div>
+                <table class="layui-hide" id="product" lay-filter="product"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm"> 
+                Copyright @@ks-jichen.com  2026-2027 All Rights Reserved.
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<style>
+    /* 失效行整行变红 */
+    tr:has(.row-invalid) {
+        background-color: #ffecec !important;
+    }
+</style>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+    //初始化
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+
+        //loadDatagrid("","","");
+        searchClick();
+    })
+
+    //基本设置
+    function loadDatagrid(ITEMCODE, KC) {
+        var tableCols = [[
+
+            { field: 'ID', title: 'ID', align: 'center', width: 200, sort: true, hide: true },
+            { field: 'ITEMCODE', title: '物料规格种类', align: 'center', sort: true },
+            { field: 'NUM', title: '现存数量', align: 'center', sort: true },
+            { field: 'MINSTORAGE', title: '预警数量', align: 'center', sort: true },
+
+            {
+                field: 'KC', width: 100, title: '库存状态', templet: function (d) {
+                    // ✅ 核心：给当前单元格加一个标记，让 CSS 找到整行
+                    var className = d.KC != '库存充足' ? 'row-invalid' : '';
+
+
+                    if (d.KC == '库存充足') {
+                        return "<div class='" + className + "'><span class='layui-badge layui-bg-green'>库存充足</span>";
+                    }
+                    else {
+                        // 失效：整行变红
+
+                        return "<div class='" + className + "'><span class='layui-badge layui-bg-red'>库存不足</span>";
+                    }
+                }
+            }
+
+
+        ]
+        ];
+        hg.table.datatable('product', '物料管理', '/WMS/Master/GetRowData',
+            {
+                ITEMCODE: ITEMCODE,
+                KC: KC
+
+            }, tableCols, '', true, 'full-255');
+    }
+
+
+    //查询
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form;
+                var data = form.val('example');
+                var ITEMCODE = data.searchITEMCODE;
+                var KC = data.searchKC;
+
+
+                loadDatagrid(ITEMCODE, KC);
+            })
+    }
+
+    function addClick() {
+        var token = getCurrentToken();
+        var url = '/WMS/Master/AddOrEdit?typeflag=0';
+        if (token) url += '&token=' + token;
+       
+        hg.open('新增',url, 500, 750);
+    }
+
+    //修改
+    function editClick() {
+        //obj通过行tool修改-lay-event
+        var row = hg.table.datatable('product', 'getSelected');
+        if (row) {
+            var token = getCurrentToken();
+            var datas =
+                "&ID=" + row.data.ID +
+                "&ITEMCODE=" + row.data.ITEMCODE +
+                "&MINSTORAGE=" + row.data.MINSTORAGE
+
+                ;
+
+            var url = '/WMS/Master/AddOrEdit?typeflag=1' + datas;
+            if (token) url += '&token=' + token;
+
+            hg.open('编辑',url, 500, 400);
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    //删除
+    function delClick() {
+        //obj通过行tool删除-lay-event
+        var row = hg.table.datatable('product', 'getSelected');
+        if (row) {
+            hg.confirm("确定删除此物料规格吗？", function () {
+                //row.del(); //只删本地数据
+                $.ajax({
+                    async: false,
+                    type: "POST",
+                    url: '/WMS/Master/DeleteProduct',
+                    data: { ID: row.data.ID },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg('删除成功！');
+                            setTimeout(function () { searchClick(); }, 500);
+                        }
+                        else {
+                            hg.msg('删除失败！');
+                        }
+
+                    },
+                    error: function (data) {
+                        hg.msg('删除失败！');
+                    }
+                })
+
+
+            });
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+
+    //获取参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return (r[2]);
+        return null;
+    }
+
+</script>

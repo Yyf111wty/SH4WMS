@@ -1,0 +1,31 @@
+﻿
+<?xml version="1.0" encoding="utf-8" ?>
+<objects xmlns="http://www.springframework.net">
+        
+  <object name="sys_GroupsService1" type="TR.Service.sys_GroupsService,TR.Service" singleton="false"/>
+  <object name="sys_PermissionsService1" type="TR.Service.sys_PermissionsService,TR.Service" singleton="false"/>
+  <object name="sys_RolesService1" type="TR.Service.sys_RolesService,TR.Service" singleton="false"/>
+  <object name="sys_UsersService1" type="TR.Service.sys_UsersService,TR.Service" singleton="false"/>
+  <object name="WMS_BAS_CODESETService1" type="TR.Service.WMS_BAS_CODESETService,TR.Service" singleton="false"/>
+  <object name="WMS_BAS_DEVICEService1" type="TR.Service.WMS_BAS_DEVICEService,TR.Service" singleton="false"/>
+  <object name="WMS_BAS_LOCATIONService1" type="TR.Service.WMS_BAS_LOCATIONService,TR.Service" singleton="false"/>
+  <object name="WMS_BAS_MASTERService1" type="TR.Service.WMS_BAS_MASTERService,TR.Service" singleton="false"/>
+  <object name="WMS_BAS_ReplenishSetService1" type="TR.Service.WMS_BAS_ReplenishSetService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_BODYService1" type="TR.Service.WMS_BILL_BODYService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_COUNTBODYService1" type="TR.Service.WMS_BILL_COUNTBODYService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_COUNTHEADService1" type="TR.Service.WMS_BILL_COUNTHEADService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_DETALIService1" type="TR.Service.WMS_BILL_DETALIService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_HEADService1" type="TR.Service.WMS_BILL_HEADService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_PUTINBODYService1" type="TR.Service.WMS_BILL_PUTINBODYService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_PUTINHEADService1" type="TR.Service.WMS_BILL_PUTINHEADService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_TYPEService1" type="TR.Service.WMS_BILL_TYPEService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_WEIGHService1" type="TR.Service.WMS_BILL_WEIGHService,TR.Service" singleton="false"/>
+  <object name="WMS_BOOKING_TASKService1" type="TR.Service.WMS_BOOKING_TASKService,TR.Service" singleton="false"/>
+  <object name="WMS_CONTAINERService1" type="TR.Service.WMS_CONTAINERService,TR.Service" singleton="false"/>
+  <object name="WMS_OPERATINGLOGService1" type="TR.Service.WMS_OPERATINGLOGService,TR.Service" singleton="false"/>
+  <object name="WMS_SUPPLIER_CUSTOMERService1" type="TR.Service.WMS_SUPPLIER_CUSTOMERService,TR.Service" singleton="false"/>
+  <object name="WMS_TASK_STOCKERService1" type="TR.Service.WMS_TASK_STOCKERService,TR.Service" singleton="false"/>
+  <object name="sys_RolePermissionService1" type="TR.Service.sys_RolePermissionService,TR.Service" singleton="false"/>
+  <object name="sys_UserRoleService1" type="TR.Service.sys_UserRoleService,TR.Service" singleton="false"/>
+  <object name="WMS_BILL_HEIGHService1" type="TR.Service.WMS_BILL_HEIGHService,TR.Service" singleton="false"/>
+</objects>

@@ -1,0 +1,396 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+    <title>巷道管理</title>
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
+    <script src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script src="~/lib/layui/layui.js"></script>
+</head>
+
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+
+
+        <div class="layui-card">
+
+
+            <div class="layui-card-header">
+
+                巷道开关管理
+
+            </div>
+
+
+
+            <div class="layui-card-body">
+
+
+                <table class="layui-table">
+
+
+                    <thead>
+
+                        <tr>
+
+                            <th>巷道编号</th>
+
+                            <th>当前状态</th>
+
+                            <th>操作</th>
+
+                        </tr>
+
+
+                    </thead>
+
+
+                    <tbody id="laneBody">
+                    </tbody>
+
+
+                </table>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <script>
+
+
+        layui.use(['layer'], function () {
+
+
+            var layer = layui.layer;
+
+
+
+            //页面加载
+
+            $(function () {
+
+                GetLane();
+
+            });
+
+
+
+
+
+            /**
+             * 获取巷道状态
+             */
+            function GetLane() {
+
+
+                $.ajax({
+
+                    type: "GET",
+
+                    url: "/WMS/Lane/GetLane",
+
+
+                    dataType: "json",
+
+
+                    success: function (res) {
+
+
+                        if (res.success) {
+
+                            createLaneHtml(res.data);
+
+                        }
+                        else {
+
+                            layer.msg(res.message);
+
+                        }
+
+
+                    },
+
+
+                    error: function () {
+
+                        layer.msg("获取巷道失败");
+
+                    }
+
+
+                });
+
+
+
+            }
+
+
+
+
+
+
+
+            /**
+             * 生成巷道列表
+             */
+            function createLaneHtml(data) {
+
+
+                var html = "";
+
+
+
+                $.each(data, function (index, item) {
+
+
+                    var lane = "";
+
+                    var enabled = 0;
+
+
+
+                    //解析Key Value格式
+
+                    $.each(item, function (i, obj) {
+
+                        if (obj.Key == "lane") {
+
+                            lane = obj.Value;
+
+                        }
+
+
+                        if (obj.Key == "enabled") {
+
+                            enabled = obj.Value;
+
+                        }
+
+
+                    });
+
+
+
+
+                    //补充两位
+
+                    var laneCode =
+                        lane.toString();
+
+
+
+
+                    var stateName =
+                        enabled == 1 ?
+                            "开启" :
+                            "关闭";
+
+
+
+                    var stateClass =
+                        enabled == 1 ?
+                            "layui-bg-green" :
+                            "layui-bg-red";
+
+
+
+
+                    html += `
+
+
+                <tr>
+
+
+                    <td>
+
+                        ${laneCode}巷道
+
+                    </td>
+
+
+
+                    <td>
+
+                        <span id="state_${laneCode}"
+                              class="layui-badge ${stateClass}">
+
+                            ${stateName}
+
+                        </span>
+
+
+                    </td>
+
+
+
+
+                    <td>
+
+
+                        <button
+                            class="layui-btn layui-btn-sm"
+
+                            onclick="changeLane('${laneCode}',${enabled})">
+
+
+                            修改开关
+
+
+                        </button>
+
+
+                    </td>
+
+
+
+                </tr>
+
+
+
+                `;
+
+
+                });
+
+
+
+                $("#laneBody").html(html);
+
+
+
+            }
+
+
+
+
+
+
+
+
+
+            /**
+             * 修改巷道状态
+             */
+            window.changeLane = function (lane, enabled) {
+
+
+                //当前开启 -> 修改关闭
+                //当前关闭 -> 修改开启
+
+                var newState =
+                    enabled == 1 ? 0 : 1;
+
+
+
+                var message =
+                    newState == 1 ?
+
+                        "确定开启" + lane + "巷道吗？" :
+
+                        "确定关闭" + lane + "巷道吗？";
+
+
+
+
+
+                layer.confirm(message, function () {
+
+
+
+                    $.ajax({
+
+
+                        type: "POST",
+
+
+                        url: "/WMS/Lane/UpdateLaneState",
+
+
+
+                        data:
+                        {
+
+                            lane: lane,
+
+                            enabled: newState
+
+                        },
+
+
+
+                        dataType: "json",
+
+
+
+                        success: function (res) {
+
+
+                            if (res.success) {
+
+                                layer.msg("修改成功");
+
+
+                                //重新获取数据库状态
+
+                                GetLane();
+
+
+                            }
+                            else {
+
+                                layer.msg(res.message);
+
+                            }
+
+
+
+                        },
+
+
+                        error: function () {
+
+                            layer.msg(res.message);
+
+                        }
+
+
+
+                    });
+
+
+
+                });
+
+
+
+            }
+
+
+
+
+
+        });
+
+
+
+    </script>
+
+
+
+</body>
+
+</html>

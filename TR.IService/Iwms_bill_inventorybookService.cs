@@ -1,0 +1,33 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Text;
+using System.Threading.Tasks;
+using TR.Model;
+using TR.ORM.Model;
+
+namespace TR.IService
+{
+    public partial interface Iwms_bill_inventorybookService : IBaseService<wms_bill_inventorybook>
+    {
+		List<InventorystatisticsModel> Getlist(
+		  Expression<Func<InventorystatisticsModel, bool>> whereExpression,
+			  ref int intTotalCount,
+			  int intPageIndex = 0,
+			  int intPageSize = 20,
+			  string strOrderByFileds = null);
+        List<InventoryGGModel> GetGGlist(
+          Expression<Func<InventoryGGModel, bool>> whereExpression,
+              ref int intTotalCount,
+              int intPageIndex = 0,
+              int intPageSize = 20,
+              string strOrderByFileds = null);
+        List<InventoryKCModel> GetKClist(
+         Expression<Func<InventoryKCModel, bool>> whereExpression,
+             ref int intTotalCount,
+             int intPageIndex = 0,
+             int intPageSize = 20,
+             string strOrderByFileds = null);
+    }
+}

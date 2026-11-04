@@ -1,0 +1,169 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>报价记录
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchCOMPANYNAME" placeholder="公司名称" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchPROJECTCODE" placeholder="项目号" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchPROJECTNAME" placeholder="项目名称" class="layui-input">
+                        </div>
+
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div">
+                </div>
+                <table class="layui-hide" id="product" lay-filter="product"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm">
+               招标或报价有任何违规行为。投诉邮箱：Jichenzb@ks-jichen.com
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+
+    //初始化
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+
+        searchClick();
+    })
+    //获取select数句
+    function getSelectData(code, name) {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/Location/GetSearchSelectListByZone',
+            data: { code: code, name: name },
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+    //获取用户名
+    function getUsertData() {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/Location/GetUsertData',
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+
+    //基本设置
+    function loadDatagrid(COMPANYNAME, PROJECTCODE, PROJECTNAME) {
+        var tableCols = [[
+
+            { field: 'ID', title: 'ID', align: 'center', width: 200, sort: true, hide: true },
+            { field: 'COMPANYNAME', title: '公司名称', align: 'center',  sort: true },
+
+            { field: 'PROJECTCODE', title: '项目号', align: 'center',  sort: true },
+
+            { field: 'PROJECTNAME', title: '项目名称', align: 'center', sort: true },
+            { field: 'MYPRICE', title: '出价', align: 'center', sort: true },
+            //{ field: 'QTY', title: '数量', align: 'center', width: 200, sort: true },
+            { field: 'USERNAME', title: '竞价人', align: 'center',  sort: true },
+            { field: 'USERNAME', title: '代表公司', align: 'center',  sort: true },
+
+            {
+                field: 'BIDDTIME', title: '出价时间', fixed: 'right', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.BIDDTIME);
+                    }
+            }
+
+
+        ]
+        ];
+        hg.table.datatable('product', '', '/BIDD/UnBiddingHistory/GetRowData',
+            {
+
+                COMPANYNAME: COMPANYNAME,
+                PROJECTCODE: PROJECTCODE,
+                PROJECTNAME: PROJECTNAME
+            },
+            tableCols, '', true, 'full-255');
+    }
+    //查询
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form;
+                var data = form.val('example');
+                var COMPANYNAME = data.searchCOMPANYNAME;
+                var PROJECTCODE = data.searchPROJECTCODE;
+                var PROJECTNAME = data.searchPROJECTNAME;
+
+                loadDatagrid(COMPANYNAME, PROJECTCODE, PROJECTNAME);
+            })
+    }
+
+
+    //获取参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return (r[2]);
+        return null;
+    }
+
+</script>
+

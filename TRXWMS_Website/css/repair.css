@@ -1,0 +1,172 @@
+﻿.news_search {
+    padding: 10px 10px;
+    background-color: #808080;
+    height: 25px;
+}
+
+    .news_search .layui-inline {
+        margin: -8px 5px 5px 0;
+        height: 25px;
+        line-height: 25px;
+        line-height: 25px;
+    }
+
+        .news_search .layui-inline .layui-nav {
+            margin: -12px 5px 5px 0;
+            height: 35px;
+            line-height: 35px;
+        }
+
+.layui-table, .layui-table th {
+    text-align: center;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+
+.left {
+    width: 39.9%;
+    height: 44px;
+    background: #DCDCDC;
+    margin-top: -14px;
+    border: solid 1px #34495E;
+}
+
+.left-middle-1 {
+    width: 39.9%;
+    height:35px;
+    line-height:35px;
+    /*background: #ffffff;*/
+    margin-top: -10px;
+    border: solid 1px #34495E;
+    /*overflow: auto;*/
+}
+
+.left-bottom-1 {
+    width: 39.9%;
+    height: 716px;
+    background: #ffffff;
+    margin-top: 0px;
+    border: solid 1px #34495E;
+    overflow: auto;
+}
+
+.left-middle-2 {
+    width: 39.9%;
+    height: 40px;
+    line-height: 40px;
+    /*background: #ffffff;*/
+    margin-top: 0px;
+    border: solid 1px #34495E;
+    /*overflow: auto;*/
+}
+.left-bottom-2 {
+    width: 39.9%;
+    height: 350px;
+    background: #dedddd;
+    margin-top: -5px;
+    border: solid 1px #34495E;
+    overflow: auto;
+}
+
+
+.main {
+    width: 59.9%;
+    height: 630px;
+    background: #ffffff;
+    position: absolute;
+    left: 40%;
+    top: 50px;
+    margin-top: -4px;
+    border: solid 1px #34495E;
+}
+
+.mid-bottom {
+    width: 59.9%;
+    height: 40px;
+    background: #ffffff;
+    position: absolute;
+    right: 0px;
+    left: 40%;
+    top: 678px;
+    bottom: 0px;
+    border: solid 1px #34495E;
+}
+
+.bottom {
+    width: 59.9%;
+    height:100%;
+    height: 478px;
+    background: #ffffff;
+    position: absolute;
+    right: 0px;
+    left: 40%;
+    top: 720px;
+    bottom: 0px;
+    border: solid 1px #34495E;
+}
+
+.left-bottom-title {
+    height: 25px;
+    line-height: 25px;
+    background-color: #808080;
+    font-size: 20px;
+    color: #ffffff;
+    width: 100%;
+    text-align: center;
+}
+
+.module-scan {
+    padding: 10px 10px;
+    margin-left: -1px;
+    background-color: #274862;
+    height: 25px;
+}
+
+.module-scan-layui-inline {
+    float: left;
+    margin: -38px 5px 5px 0;
+    height: 25px;
+    line-height: 25px;
+}
+
+.module {
+    padding: 6px 10px;
+    background-color: #274862;
+    height: 25px;
+    line-height:25px;
+}
+
+.module-layui-inline {
+    float: left;
+    margin: -9px 5px 5px 0;
+    height: 25px;
+    line-height: 25px;
+}
+
+.process-card {
+    float: left;
+    width: 98%;
+    height: 340px;
+    margin-top:10px;
+    margin-left: 1%;
+    margin-bottom: 10px;
+    overflow: auto;
+    border-radius: 20px;
+    background: #dedddd;
+}
+.tabel-title {
+    float: left;
+    font-size: 17px;
+    height: 17px;
+    line-height: 17px;
+    margin-top: 10px;
+    margin-left: 50px;
+    margin-right:50px;
+}
+
+
+

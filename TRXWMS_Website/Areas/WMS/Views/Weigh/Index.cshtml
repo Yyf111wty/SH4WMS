@@ -1,0 +1,173 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>入库测重
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+
+                        @*<div class="layui-inline">
+                            <select id="searchWAREHOUSECODE" name="searchWAREHOUSECODE" readonly="true" placeholder="仓库编号">
+                                <option value="">仓库编号</option>
+                                <option value="1103A">托盘库</option>
+                                <option value="1103B">料箱半成品库</option>
+                                <option value="1103C">料箱成品库</option>
+                            </select>
+                        </div>*@
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchSOURCEORDER" placeholder="单据编号" class="layui-input">
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchCONTAINER" placeholder="载具编号" class="layui-input">
+                        </div>
+
+                       
+
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div">
+                </div>
+                <table class="layui-hide" id="product" lay-filter="product"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm">
+                Copyright @@ks-jichen.com  2026-2027 All Rights Reserved.
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+    //初始化
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+        loadDatagrid("","");
+
+    })
+
+    //基本设置
+    function loadDatagrid( SOURCEORDER, CONTAINER) {
+        var tableCols = [[
+
+            { field: 'ID', title: 'ID', align: 'center', width: 200, sort: true, hide: true },
+            //{
+            //    field: 'WAREHOUSECODE', title: '仓库编码', align: 'center', width: 150, sort: true, templet:
+            //        function (d) {
+            //            if (d.WAREHOUSECODE == '1103A') {
+            //                return "<span class='layui-badge layui-bg-gray'>托盘库</span>"
+            //            } else if (d.WAREHOUSECODE == '1103B') {
+            //                return "<span class='layui-badge layui-bg-gray'>料箱半成品库</span>"
+            //            } else if (d.WAREHOUSECODE == '1103C') {
+            //                return "<span class='layui-badge layui-bg-gray'>料箱成品库</span>"
+            //            } else {
+            //                return "<span class='layui-badge layui-bg-gray'>未知库区</span>"
+            //            }
+            //        }
+            //},
+            { field: 'SOURCEORDER', title: '单据编号', align: 'center', width: 150, sort: true },
+            { field: 'CONTAINER', title: '载具编号', align: 'center', width: 150, sort: true },
+
+          
+            { field: 'ACTUALWEIGHT', title: '实际重量', align: 'center', width: 100, sort: true },
+            {
+                field: 'RESULT', width: 100, title: '是否达标', templet: function (d) {
+                    if (d.RESULT == 1) {
+                        return "<span class='layui-badge layui-bg-green'>达标</span>";
+                    }
+                    else {
+                        return "<span class='layui-badge layui-bg-red'>不达标</span>";
+                    }
+                }
+            },
+           
+            { field: 'REMARK', title: '备注', align: 'center', width: 200, sort: true },
+            { field: 'CREATOR', title: '创建人', align: 'center', width: 100, sort: true },
+            {
+                field: 'CREATETIME', title: '创建时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.CREATETIME);
+                    }
+            },
+            { field: 'LASTEDITOR', title: '编辑人', align: 'center', width: 100, sort: true },
+            {
+                field: 'LASTEDITTIME', title: '编辑时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.LASTEDITTIME);
+                    }
+            },
+
+        ]
+        ];
+        hg.table.datatable('product', '入库测重', '/WMS/Weigh/GetRowData',
+            {
+               
+                SOURCEORDER: SOURCEORDER,
+                CONTAINER: CONTAINER
+             
+            },
+        tableCols, '', true, 'full-255');
+    }
+    //查询
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form;
+                var data = form.val('example');
+               
+                var SOURCEORDER = data.searchSOURCEORDER;
+                var CONTAINER = data.searchCONTAINER;
+              
+                loadDatagrid( SOURCEORDER, CONTAINER);
+            })
+    }
+   
+    //获取参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return (r[2]);
+        return null;
+    }
+
+</script>

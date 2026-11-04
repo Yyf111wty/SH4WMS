@@ -1,0 +1,220 @@
+.news_search {
+    padding: 12px 12px;
+    background-color:#808080;
+    height: 25px;
+}
+
+    .news_search .layui-inline {
+        margin:-7px 5px 5px 0;
+        height: 25px;
+        line-height: 25px;
+    }
+.news_search .layui-inline .layui-nav {
+        margin: -12px 5px 5px 0;
+        height: 35px;
+        line-height: 35px;
+    }
+.layui-table, .layui-table th {
+    text-align: center;
+}
+
+
+
+.left {
+    width: 39.9%;
+    height: 240px;
+    background: #DCDCDC;
+    margin-top: -14px;
+    border: solid 1px #34495E;
+}
+
+.left-middle {
+    width: 39.9%;
+    height:45px;
+    /*background: #ffffff;*/
+    margin-top: 0px;
+    border: solid 1px #34495E;
+    /*overflow: auto;*/
+}
+
+.left-bottom {
+    width: 39.9%;
+    height: 858px;
+    background: #ffffff;
+    margin-top: 0px;
+    border: solid 3px #34495E;
+    overflow: auto;
+}
+
+.main {
+    width: 59.7%;
+    height: 630px;
+    background: #ffffff;
+    position: absolute;
+    left: 40%;
+    top: 50px;
+    margin-top: -4px;
+    border: solid 3px #34495E;
+}
+
+.mid-bottom {
+    width: 59.8%;
+    height: 50px;
+    background: #ffffff;
+    position: absolute;
+    right: 0px;
+    left: 40%;
+    top: 682px;
+    bottom: 0px;
+    border: solid 1px #34495E;
+}
+
+.bottom {
+    width: 59.7%;
+    height: 465px;
+    background: #ffffff;
+    position: absolute;
+    right: 0px;
+    left: 40%;
+    top: 728px;
+    bottom: 0px;
+    border: solid 3px #34495E;
+}
+
+.left-bottom-title {
+    height: 25px;
+    line-height: 25px;
+    background-color: #808080;
+    font-size: 20px;
+    color: #ffffff;
+    width: 100%;
+    text-align: center;
+}
+
+.module-scan {
+    padding: 10px 10px;
+    margin-left:-1px;
+    background-color: #274862;
+    height: 29px;
+}
+
+.module-scan-layui-inline {
+    float:left;
+    margin:-38px 5px 5px 0;
+    height: 35px;
+    line-height: 35px;
+}
+.module {
+    padding: 12px 12px;
+    margin-left: -1px;
+    background-color: #274862;
+    height: 22px;
+}
+.module-layui-inline {
+    float: left;
+    margin: -9px 5px 5px 0;
+    height: 35px;
+    line-height: 35px;
+}
+.card {
+    width: 98%;
+    height: 177px;
+    margin-left: 1%;
+    margin-top: -3px;
+    overflow: auto;
+    border-radius: 20px;
+    color: #000000;
+    background: #ffffff;
+}
+
+.card-li {
+    font-size: 18px;
+    margin-top: 10px;
+    margin-right: 30px;
+}
+
+.process-card {
+    float: left;
+    width: 98%;
+    height: auto;;
+    margin-left: 1%;
+    margin-bottom: 10px;
+    overflow: auto;
+    border-radius: 20px;
+    background: #DCDCDC;
+
+
+}
+.tabel-title {
+    float: left;
+    font-size: 18px;
+    height: 18px;
+    line-height: 18px;
+    margin-top: 10px;
+    margin-left: 15px;
+    margin-right:20px;
+}
+.time-lable {
+    float: right;
+    margin-top: 3px;
+    margin-right: 40px;
+    height: 20px;
+    line-height: 20px;
+}
+
+.time {
+    float: right;
+    margin-top: 3px;
+    height: 20px;
+    line-height: 20px;
+}
+
+.parameter-card {
+    float: left;
+    width: 98%;
+    height: 450px;
+    margin-top: 0.5%;
+    margin-left: 1%;
+    margin-bottom: 0.5%;
+    overflow: auto;
+    border-radius: 20px;
+    background: #E1F4FD;
+}
+
+.search {
+    padding: 10px 10px;
+    background-color: #808080;
+    height: 20px;
+}
+
+
+.location-card {
+    float: left;
+    width: 50%;
+    height: 480px;
+    margin-left: 1%;
+    margin-bottom: 5px;
+    overflow: auto;
+    background: #DCDCDC;
+}
+
+.qc-card {
+    float: left;
+    width: 50%;
+    height: 410px;
+    margin-left: 1%;
+    margin-top: 0px;
+    margin-bottom: 10px;
+    overflow: auto;
+    background: #DCDCDC;
+}
+
+.step-card {
+    width: 47%;
+    height: 895px;
+    margin-left: 52%;
+    margin-top: 0px;
+    margin-bottom: 10px;
+    overflow: auto;
+    background: #DCDCDC;
+}

@@ -1,0 +1,206 @@
+﻿
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>报工信息
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchBARCODE" placeholder="载具编号" class="layui-input">
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchSOURCEORDER" placeholder="单据编号" class="layui-input">
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchWAREHOUSECODE" placeholder="库位编号" class="layui-input">
+                           
+                        </div>
+
+                        @*<div class="layui-inline">
+                            <input type="text" name="searchITEMCODE" placeholder="物料编码" class="layui-input">
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchITEMNAME" placeholder="物料名称" class="layui-input">
+                        </div>*@
+
+                        <div class="layui-inline">
+                            <select id="searchTYPE" name="searchTYPE" readonly="true" placeholder="成功标记">
+                                <option value="-10">成功标记</option>
+                                <option value="0">失败</option>
+                                <option value="1">成功</option>
+                            </select>
+                        </div>
+
+                        <div class="layui-inline">
+                            <select id="searchSTATE" name="searchSTATE" readonly="true" placeholder="任务类型">
+                                <option value="state">任务类型</option>
+                                <option value="IN">入库</option>
+                                <option value="OUT">出库</option>
+                              
+                            </select>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div">
+                </div>
+                <table class="layui-hide" id="ReportWork" lay-filter="ReportWork"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm">
+                Copyright @@ks-jichen.com  2026-2027 All Rights Reserved.
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+    //初始化
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+        loadDatagrid("", "", "", "", "", -10, -10);
+    })
+    //基本设置
+    function loadDatagrid(BARCODE, SOURCEORDER, WAREHOUSECODE,  TYPE, STATE) {
+        var tableCols = [[
+
+            { field: 'ID', title: 'ID', align: 'center', width: 200, sort: true, hide: true },
+            { field: 'BARCODE', title: '载具编号', align: 'center', width: 150, sort: true },
+            { field: 'SOURCEORDER', title: '单据编号', align: 'center', width: 150, sort: true, },
+            {
+                field: 'WAREHOUSECODE', title: '库位编号', align: 'center', width: 150, sort: true
+            },
+            //{ field: 'QTY', title: '数量', align: 'center', width: 100, sort: true, },
+            {
+                field: 'TYPE', title: '成功标记', align: 'center', width: 100, sort: true, templet:
+                    function (d) {
+                        if (d.TYPE == 1) {
+                            return "<span class='layui-badge layui-bg-blue'>成功</span>"
+                        } else {
+                            return "<span class='layui-badge layui-bg-red'>失败</span>"
+                        }
+                    }},
+            { field: 'REMARK', title: '备注', align: 'center', width: 200, sort: true, },
+            //{ field: 'ITEMCODE', title: '物料编码', align: 'center', width: 150, sort: true, },
+            //{ field: 'ITEMNAME', title: '物料名称', align: 'center', width: 150, sort: true, },
+            {
+                field: 'STATE', title: '任务类型', align: 'center', width: 100, sort: true, templet:
+                    function (d) {
+                        if (d.STATE == "IN") {
+                            return "<span class='layui-badge layui-bg-blue'>入库</span>"
+                        } else if (d.STATE == "OUT") {
+                            return "<span class='layui-badge layui-bg-yellow'>出库</span>"
+
+                        } else  {
+                            return "<span class='layui-badge layui-bg-gray'>其他</span>"
+                        }
+                    }
+            },
+            { field: 'CREATOR', title: '创建人', align: 'center', width: 100, sort: true, },
+            {
+                field: 'CREATETIME', title: '创建时间', align: 'center', width: 200, sortable: true,
+                templet:
+                    function (d) {
+                        return FormatToDate(d.CREATETIME);
+                    }
+            },
+            { field: 'LASTEDITOR', title: '更新人', align: 'center', width: 100, sort: true, },
+            {
+                field: 'LASTEDITTIME', title: '更新时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.LASTEDITTIME);
+                    }
+            },
+
+        ]
+        ];
+        hg.table.datatable('ReportWork', '报工信息', '/WMS/ReportWork/GetRowData',
+            {
+                BARCODE: BARCODE,
+                SOURCEORDER: SOURCEORDER,
+                WAREHOUSECODE: WAREHOUSECODE,
+                TYPE: TYPE,               
+                STATE: STATE,
+            },
+            tableCols, '', true, 'full-255');
+    }
+
+    //查询
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form;
+                var data = form.val('example');
+                var BARCODE = data.searchBARCODE;
+                var SOURCEORDER = data.searchSOURCEORDER;
+                var WAREHOUSECODE = data.searchWAREHOUSECODE;
+                //var ITEMCODE = data.searchITEMCODE;
+                //var ITEMNAME = data.searchITEMNAME;
+                var TYPE = data.searchTYPE;
+                var STATE = data.searchSTATE;
+                loadDatagrid(BARCODE, SOURCEORDER, WAREHOUSECODE, TYPE, STATE);
+            })
+    } 
+
+    //导出
+    function exportClick() {
+        this.location.href = "/WMS/ReportWork/Export"
+    }
+
+   
+    //获取参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return (r[2]);
+        return null;
+    }
+
+
+</script>

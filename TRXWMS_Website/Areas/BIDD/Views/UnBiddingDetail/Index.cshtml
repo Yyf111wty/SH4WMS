@@ -1,0 +1,683 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f2f2f2;
+            padding: 10px;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container-wrapper {
+            height: calc(100vh - 30px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-section {
+            flex: 1;
+            margin-bottom: 15px;
+            min-height: 0;
+        }
+
+            .table-section:last-child {
+                margin-bottom: 0;
+            }
+
+        .layui-card {
+            height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        /*  .layui-card-header {
+            background: linear-gradient(135deg, #1E9FFF 0%, #0081FF 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            flex-shrink: 0;
+            padding: 12px 15px;
+            font-size: 16px;
+        }*/
+
+        .layui-card-body {
+            padding: 15px;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+
+        .highlight-btn {
+            font-size: 14px; /* 变大 */
+            font-weight: bold; /* 变粗 */
+            background-color: #4CAF50; /* 高亮背景 */
+            color: white; /* 白色文字 */
+            padding: 1px 5px; /* 增加内边距 */
+            border: none; /* 去除边框 */
+            border-radius: 5px; /* 圆角 */
+            cursor: pointer; /* 鼠标悬停指针 */
+            transition: background-color 0.3s; /* 背景渐变过渡 */
+        }
+
+            .highlight-btn:hover {
+                background-color: #45a049; /* 悬停时更亮 */
+            }
+    </style>
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body>
+
+    <div class="container-wrapper">
+        <!-- 上半部分表格区域 -->
+        <div class="table-section">
+            <div class="layui-card">
+                <div class="layui-card-header">
+                    <i class="iconfont">&#xe6ac;</i>项目报价
+                    <span class="layui-layout-right">
+                        <a href="javascript:;" hg-event="fullscreen">
+                            <i class="layui-icon layui-icon-screen-full"></i>
+                        </a>
+                    </span>
+                </div>
+
+                <div class="layui-card-body">
+                    <div class="layui-row" id="searchform">
+                        <div class="layui-form" lay-filter="example">
+                            <div class="layui-form-item">
+
+                                <div class="layui-inline">
+                                    <input type="text" name="searchCOMPANYNAME" placeholder="公司名称" class="layui-input">
+                                </div>
+                                <div class="layui-inline">
+                                    <input type="text" name="searchPROJECTCODE" placeholder="项目号" class="layui-input">
+                                </div>
+                                <div class="layui-inline">
+                                    <input type="text" name="searchPROJECTNAME" placeholder="项目名称" class="layui-input">
+                                </div>
+                                <div class="layui-inline">
+                                    <input type="text" name="searchPROJECTTYPE" placeholder="型号" class="layui-input">
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="layui-row" id="rowbtn">
+                        <div class="layui-card-divs" id="group_div">
+                        </div>
+                    </div>
+                    <div class="layui-row" id="djsrow" style="text-align:center">
+                        <label id="dslbl" style="font-size:24px;font-weight:bold;color:crimson;text-align:center" />
+                    </div>
+                    <div class="layui-row" id="tablesdiv">
+                        <table id="typehead" lay-filter="typehead"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下半部分表格区域 -->
+        <div class="table-section" id="tabsbody">
+            <div class="layui-card">
+                <div class="layui-card-header">
+                    <i class="layui-icon layui-icon-table"></i> 我的报价
+                </div>
+                <div class="layui-card-body">
+                    <div class="layui-row" id="djsbodyrow" style="text-align:center">
+                        <label id="dsbodylbl" style="font-size:24px;font-weight:bold;color:crimson;text-align:center" />
+                    </div>
+                    <table id="typebody" lay-filter="typebody"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>项目报价
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+
+            <div class="layui-card-body">
+                <div class="layui-row" id="searchform">
+                    <div class="layui-form" lay-filter="example">
+                        <div class="layui-form-item">
+
+                            <div class="layui-inline">
+                                <input type="text" name="searchCOMPANYNAME" placeholder="公司名称" class="layui-input">
+                            </div>
+                            <div class="layui-inline">
+                                <input type="text" name="searchPROJECTCODE" placeholder="项目号" class="layui-input">
+                            </div>
+                            <div class="layui-inline">
+                                <input type="text" name="searchPROJECTNAME" placeholder="项目名称" class="layui-input">
+                            </div>
+                            <div class="layui-inline">
+                                <input type="text" name="searchPROJECTTYPE" placeholder="型号" class="layui-input">
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-row" id="rowbtn">
+                    <div class="layui-card-divs" id="group_div">
+                    </div>
+                </div>
+
+                <div class="layui-row" id="tablesdiv">
+                    <div class="layui-row">
+                        <table id="typehead" lay-filter="typehead"></table>
+                    </div>
+                    <div class="layui-row" id="typebodyrow" style="display:none">
+                        <table id="typebody" lay-filter="typebody"></table>
+                    </div>
+
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+    <div class="layui-floor">
+        <blockquote class="layui-elem-quote layui-quote-nm">
+           招标或报价有任何违规行为。投诉邮箱：Jichenzb@ks-jichen.com
+        </blockquote>
+    </div>
+
+</body>
+</html>
+
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+
+    //初始化
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+        // $("#typebody").style.display = 'none';
+        //隐藏下半部分，隐藏计数器
+        $("#tabsbody").hide();
+        $("#djsrow").hide();
+        $("#djsbodyrow").hide();
+
+        searchClick();
+
+        //startCountdownTimer();
+        //loadDatagrid("","","","", "", "", -10, -10, -10);
+        //loadbody();
+        //// 在表格初始化完成后调用
+        //startCountdownTimer();
+
+
+    })
+
+    //加载head
+    function loadDatagrid(COMPANYNAME, PROJECTCODE, PROJECTNAME, PROJECTTYPE) {
+        var tableCols = [[
+            { field: 'ID', title: 'ID', align: 'center',  sort: true, hide: true },
+            { field: 'COMPANYNAME', title: '公司名称', align: 'center',   sort: true },
+
+            { field: 'PROJECTCODE', title: '项目号', align: 'center',  sort: true },
+
+            { field: 'PROJECTNAME', title: '项目名称', align: 'center',  sort: true },
+            { field: 'PROJECTTYPE', title: '型号', align: 'center',  sort: true },
+            { field: 'UNITPRICE', title: '单价',  align: 'center', sort: true, hide: true },
+            { field: 'NUMBER', title: '数量', align: 'center', sort: true, hide: true},
+            { field: 'RANGEPRICE', title: '降价区间', align: 'center', width: 120, hide: true },
+            //{
+            //    field: 'FILEADDRESS', title: '项目文档', templet: function (d) {
+            //        return '<a class="layui-btn layui-btn-xs" lay-event="download">下载';
+            //    }
+            //},
+            {
+                field: 'FILEADDRESS', title: '项目文档', width: 100, templet: function (d) {
+                    return '<a href="javascript:void(0)" onclick="downloadFile(\'' + window.location.origin + "/" + d.FILEADDRESS + '\',\'' + d.PROJECTCODE + '\')" class="layui-btn layui-btn-xs">下载';
+                }
+            },
+            {
+                field: 'STARTTIME', title: '开始时间', align: 'center', width: 180, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.STARTTIME);
+                    }
+            },
+            {
+                field: 'ENDTIME', title: '截止时间', align: 'center', width: 180, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.ENDTIME);
+                    }
+            },
+            {
+                title: '操作', width: 300, align: 'center', fixed: 'right',templet: function (d) {
+                    return '<a href="javascript:void(0)" onclick="operate(' + JSON.stringify(d).replace(/"/g, "'") + ')" class="layui-btn layui-btn-xs highlight-btn">参与报价';
+                }
+            }
+           /* { title: '操作', width: 300, toolbar: '#demoOperate' }*/
+            //{    + '",' + d.PROJECTCODE
+            //    field: 'remainingTime',
+            //    title: '剩余时间',
+            //    width: 200, fixed: 'right',
+            //    templet: '#countdownTpl'
+            //}
+        ]
+        ];
+        var table = hg.table.datatable('typehead', '', '/BIDD/UnBiddingDetail/GetHeadData',
+            {
+                COMPANYNAME: COMPANYNAME,
+                PROJECTCODE: PROJECTCODE,
+                PROJECTNAME: PROJECTNAME,
+                PROJECTTYPE: PROJECTTYPE
+            }, tableCols, '', true, 'full-255');
+
+
+        // 在表格初始化完成后调用
+        //startCountdownTimer();
+
+
+
+        //table.onrowclick(function (obj) {
+        //    //         var SOURCEORDER = obj.data.SOURCEORDER;
+        //    //var CONTAINER = obj.data.CONTAINER;
+        //    var ID = obj.data.PROJECTCODE;
+        //    loadbodyDatagrid(ID);
+
+        //});
+
+
+    }
+
+    //获取用户名
+    function getUsertData() {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/Location/GetUsertData',
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+
+    //加载明细
+    function loadbodyDatagrid(ID) {
+        var tableCols = [[
+
+            //{ field: 'SOURCEORDER', title: '订单编号', align: 'center', width: 200, sort: true },
+            { field: 'COMPANYNAME', title: '公司名称',  align: 'center',  sort: true },
+
+            { field: 'PROJECTCODE', title: '项目号', align: 'center', sort: true },
+            { field: 'PROJECTNAME', title: '项目名称', align: 'center', sort: true },
+            { field: 'MYPRICE', title: '出价', align: 'center', sort: true },
+            //{ field: 'QTY', title: '数量', align: 'center', width: 200, sort: true },
+            { field: 'USERNAME', title: '竞价人', align: 'center', sort: true },
+
+            {
+                field: 'BIDDTIME', title: '竞价时间', fixed: 'right', align: 'center',  sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.BIDDTIME);
+                    }
+            }
+
+        ]
+        ];
+
+        hg.table.datatable('typebody', '', '/BIDD/UnBiddingDetail/GetBodyData?ID=' + ID, {}, tableCols, '', true, 'full-255');
+
+    }
+
+    //查询
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form;
+                var data = form.val('example');
+                var COMPANYNAME = data.searchCOMPANYNAME;
+                var PROJECTCODE = data.searchPROJECTCODE;
+                var PROJECTNAME = data.searchPROJECTNAME;
+                var PROJECTTYPE = data.searchPROJECTTYPE;
+                loadDatagrid(COMPANYNAME, PROJECTCODE, PROJECTNAME, PROJECTTYPE);
+                loadbodyDatagrid("");
+
+            })
+    }
+    //报价作废
+    function editClick() {
+        //obj通过行tool修改-lay-event
+        var row = hg.table.datatable('typehead', 'getSelected');
+        if (row) {
+            var datas =
+                "COMPANYNAME=" + row.data.COMPANYNAME +
+                "&PROJECTNAME=" + row.data.PROJECTNAME +
+                "&PROJECTCODE=" + row.data.PROJECTCODE
+
+                ;
+            hg.open('报价', '/BIDD/UnBiddingDetail/Rrice?' + datas, 500, 500);
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+
+    //参与竞标
+    function operate(data) {
+        //console.log(code);
+        //var obj = code;
+        // 隐藏所有行，只显示当前行
+
+        $('#tablesdiv .layui-table-body.layui-table-main tbody  tr').each(function () {
+            if ($(this).index() !== data.LAY_TABLE_INDEX) {
+                $(this).hide();
+            } else
+            {
+                var tr;
+                tr = $(this);
+                var operateCell = tr.find(' td:last-child');
+                operateCell.html(`
+                                        <div class="layui-input-inline" style="margin-right: 5px;">
+                                            <input type="text" class="layui-input"   placeholder="输入报价(含税)" id="quoteInput_${data.PROJECTCODE}">
+                                        </div>
+                                        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="submitQuote('${data.PROJECTCODE}')">报价</button>
+                                         <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="resetTable()">取消</button>
+
+                                    `);
+
+            }
+
+            });
+
+            // 计算单行高度并设置表格高度
+            var rowHeight = 20;
+           var headerHeight = $(' #typehead .layui-table-header').outerHeight();
+            var totalHeight = headerHeight + rowHeight + 2;
+
+        //    // 调整表格高度
+        //table.resize('ID', {
+        //        height: totalHeight
+        //    });
+        $('#typehead').height(totalHeight);
+        $("#searchform").hide();
+        $("#rowbtn").hide();
+
+        $("#tabsbody").show();
+        $("#djsrow").show();
+        $("#djsbodyrow").show();
+
+        loadbodyDatagrid(data.PROJECTCODE);
+
+        startCountdownTimer(data.PROJECTCODE);
+        //隐藏其他模块，显示倒计时，显示竞标记录
+        //$("#searchform").hide();
+        //$("#rowbtn").hide();
+
+        //$("#tabsbody").show();
+        //$("#djsrow").show();
+        //$("#djsbodyrow").show();
+        //$("#dslbl").text("竞标剩余时间:0天0时20分10秒");
+        //$("#dsbodylbl").text("当前排名为:未出价");
+        // 替换操作列为输入框和报价按钮
+        //console.log(tr.index);
+
+    }
+
+    // 提交报价函数
+    function submitQuote(id) {
+        var inputValue = $('#quoteInput_' + id).val();
+        var pattern = /^\d+$/; // 正则表达式，匹配一个或多个数字
+        var indata = pattern.test(inputValue) && inputValue > 0; // 检查是否为正整数
+        if (!inputValue || !indata) {
+            layer.msg('请输入报价金额且只能是正整数');
+            return;
+        }
+        else
+        {
+            $.ajax({
+                async: false,
+                type: "POST",
+                url: '/BIDD/UnBiddingDetail/AddProduct',
+                data: { PROJECTCODE: id, MYPRICE: inputValue },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+                        //成功
+                        //1.刷新我的出价表格，2.更新排名，3.更新剩余时间
+                        $("#searchform").hide();
+                        $("#rowbtn").hide();
+
+                        $("#tabsbody").show();
+                        $("#djsrow").show();
+                        $("#djsbodyrow").show();
+
+                        loadbodyDatagrid(id);
+                        startCountdownTimer(id);
+                        hg.msg(data.msg);
+                        //setTimeout(function () { searchClick(); }, 500);
+                    }
+                    else {
+                        hg.msg(data.msg);
+                    }
+
+                },
+                error: function (data) {
+                    hg.msg(data.msg);
+                }
+            })
+
+        }
+
+        // 这里可以添加实际的提交逻辑
+    }
+
+
+    // 启动倒计时定时器
+    //定时刷新排名，刷新剩余时间
+    function startCountdownTimer(id) {
+        setInterval(function () {
+            $.ajax({
+                async: false,
+                type: "POST",
+                url: '/BIDD/UnBiddingDetail/GetMyData',
+                data: { PROJECTCODE: id },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+
+                        //2.更新排名，3.更新剩余时间
+                        var now = new Date(data.starttime).getTime();
+                        var endTime = new Date(data.endtime).getTime();
+                        var diff = endTime - now;
+
+                        // 计算剩余时间
+                        var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                        var livetime = days + '天' + hours + '时' + minutes + '分' + seconds + '秒';
+                        if (diff <= 0) {
+                            $("#dslbl").text("报价剩余时间:已截止");
+                        }
+                        else {
+                            $("#dslbl").text("报价剩余时间:" + livetime);
+                        }
+                      /*  $("#dsbodylbl").text("当前排名为:第" + data.rank + "位!");*/
+                    }
+                    else {
+                        $("#dslbl").text("获取数据报错");
+                   /*     $("#dsbodylbl").text("获取数据报错");*/
+                    }
+
+                },
+                error: function (data) {
+                    $("#dslbl").text("获取数据报错");
+                 /*   $("#dsbodylbl").text("获取数据报错");*/
+                }
+            })
+
+
+
+        }, 1000);
+    }
+
+    // 重置表格函数
+    function resetTable() {
+        location.reload(); // 简单重置，实际项目中可以更优雅的实现
+    }
+   /* <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="resetTable()">取消</button>*/
+    //下载文件
+    function downloadFile(url, fileName) {
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error('文件下载失败');
+                return response.blob();
+            })
+            .then(blob => {
+                const a = document.createElement('a');
+                //const url = window.location.origin +"/"+ url;
+                const url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+            })
+            .catch(error => {
+                layer.msg(error.message, { icon: 5 });
+                console.error('下载错误:', error);
+            });
+    }
+
+    //加载按钮
+    function loadGroupFormButton(pageId) {
+        var MyDiv = document.getElementById("group_div");
+        var MyDiv1 = document.getElementById("group_div1");
+        var token = getCurrentToken(); // 🔥 用这个方法取token
+        $.ajax({
+            type: "get",
+            url: "/Home/GetPermissionBtn",
+            dataType: "json",
+            data: { pageId: pageId },
+            beforeSend: function (xhr) {
+                if (token) {
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                }
+            },
+            success: function (result) {
+                if (result.length == 0) { return; }
+                for (var i = 0; i < result.length; i++) {
+                    if (result[i].NodeName == "新增" || result[i].NodeName == "编辑" || result[i].NodeName == "删除" || result[i].NodeName == "查询" || result[i].NodeName == "报价") {
+                        var str = result[i].NodeName;
+                        var button = "";
+                        if (str.search("新增") != -1) {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe654;</i>' + result[i].NodeName + '</button> ';
+                        } else if (str.search("编辑") != -1 || str.search("修改") != -1) {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe642;</i>' + result[i].NodeName + '</button> ';
+                        } else if (str.search("删除") != -1) {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe640;</i>' + result[i].NodeName + '</button> ';
+                        } else if (str.search("查询") != -1) {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe615;</i>' + result[i].NodeName + '</button> ';
+                        } else {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe642;</i>' + result[i].NodeName + '</button> ';
+                        }
+                        //var button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">' + result[i].NodeName + '</i></button> ';
+                        MyDiv.innerHTML += button;
+                    }
+                    else {
+                        var str = result[i].NodeName;
+                        var button = "";
+                        if (str.search("新增") != -1) {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe654;</i>' + result[i].NodeName + '</button> ';
+                        } else if (str.search("编辑") != -1 || str.search("修改") != -1) {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe642;</i>' + result[i].NodeName + '</button> ';
+                        } else if (str.search("删除") != -1) {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe640;</i>' + result[i].NodeName + '</button> ';
+                        } else if (str.search("查询") != -1) {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe615;</i>' + result[i].NodeName + '</button> ';
+                        } else {
+                            button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">&#xe642;</i>' + result[i].NodeName + '</button> ';
+                        }
+                        // var button = ' <button class="layui-btn layui-btn-sm"    id="' + result[i].KeyName + '" onclick="' + result[i].KeyName + 'Click()"><i  class="layui-icon">' + result[i].NodeName + '</i></button> ';
+                        MyDiv1.innerHTML += button;
+                    }
+                }
+            },
+            error: function (message) {
+                //$.messageBox('系统提示', message); return;
+                layer.alert(message, { icon: 6 }); return;
+
+            }
+        })
+    }
+
+    function getCurrentToken() {
+        // 🔥 取当前标签唯一ID
+        var tabId = sessionStorage.tabId;
+        if (!tabId) return null;
+
+        // 优先URL，其次按标签取token
+        var urlParams = new URLSearchParams(window.location.search);
+        var t = urlParams.get('token');
+        if (t) return t;
+
+        return localStorage.getItem("TOKEN_" + tabId);
+    }
+    //获取参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return (r[2]);
+        return null;
+    }
+
+
+</script>
+

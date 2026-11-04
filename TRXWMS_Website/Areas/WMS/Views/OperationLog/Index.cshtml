@@ -1,0 +1,263 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>操作审计日志</title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>操作审计日志
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+                        <div class="layui-inline">
+                            <input type="text" name="searchPageName" placeholder="页面名称" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchButtonName" placeholder="按钮名称" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchOperationType" placeholder="操作类型" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchOperatorName" placeholder="操作人" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <select id="searchRESULT" name="searchRESULT" readonly="true" placeholder="结果">
+                                <option value="">全部结果</option>
+                                <option value="成功">成功</option>
+                                <option value="失败">失败</option>
+                            </select>
+                        </div>
+                        <div class="layui-input-inline" style="width:280px;">
+                            <input type="text" id="dateRange" class="layui-input" placeholder="请选择时间范围">
+                        </div>
+                        <div class="layui-inline">
+                            <button type="button" class="layui-btn layui-btn-sm" onclick="searchClick()"><i class="layui-icon">&#xe615;</i>查询</button>
+                            <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" onclick="resetClick()"><i class="layui-icon">&#xe669;</i>重置</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div"></div>
+                <table class="layui-hide" id="operationLogTable" lay-filter="operationLogTable"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm">
+                Copyright @@ks-jichen.com  2026-2027 All Rights Reserved.
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script type="text/html" id="detailBar">
+    <a class="layui-btn layui-btn-xs" lay-event="detail">详情</a>
+</script>
+<script>
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+
+        searchClick();
+    });
+
+    function loadDatagrid(pageName, buttonName, operationType, operatorName, result, startTime, endTime) {
+        var tableCols = [[
+            { field: 'OperateTime', title: '操作时间', align: 'center', width: 170, sort: true, templet: function (d) { return FormatToDate(d.OperateTime); } },
+            { field: 'OperatorName', title: '操作人', align: 'center', width: 100, sort: true },
+            { field: 'PageName', title: '页面', align: 'center', width: 120, sort: true },
+            { field: 'ButtonName', title: '按钮', align: 'center', width: 100, sort: true },
+            { field: 'OperationType', title: '类型', align: 'center', width: 80, sort: true },
+            { field: 'Controller', title: 'Controller', align: 'center', width: 120, sort: true },
+            { field: 'Action', title: 'Action', align: 'center', width: 120, sort: true },
+            {
+                field: 'Result', title: '结果', align: 'center', width: 80, sort: true, templet: function (d) {
+                    if (d.Result === '成功') {
+                        return "<span class='layui-badge layui-bg-green'>成功</span>";
+                    }
+                    if (d.Result === '失败') {
+                        return "<span class='layui-badge layui-bg-red'>失败</span>";
+                    }
+                    return d.Result || '';
+                }
+            },
+            { field: 'ErrorMessage', title: '失败原因', align: 'center', minWidth: 160, sort: true },
+            { title: '操作', width: 90, toolbar: '#detailBar', fixed: 'right' }
+        ]];
+
+        hg.table.datatable('operationLogTable', '操作审计日志', '/WMS/OperationLog/GetRowData',
+            {
+                PageName: pageName,
+                ButtonName: buttonName,
+                OperationType: operationType,
+                OperatorName: operatorName,
+                Result: result,
+                startTime: startTime,
+                endTime: endTime
+            },
+            tableCols, '', true, 'full-255');
+    }
+
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery', 'laydate'], function () {
+            $ = layui.jquery;
+            var form = layui.form;
+            var laydate = layui.laydate;
+            laydate.render({
+                elem: '#dateRange',
+                type: 'datetime',
+                range: true,
+                format: 'yyyy-MM-dd HH:mm:ss'
+            });
+            form.render();
+
+            var data = form.val('example');
+            var timeRange = $("#dateRange").val();
+            var startTime = "";
+            var endTime = "";
+            if (timeRange) {
+                var arr = timeRange.split(" - ");
+                startTime = arr[0] || "";
+                endTime = arr[1] || "";
+            }
+
+            var params = {
+                PageName: data.searchPageName,
+                ButtonName: data.searchButtonName,
+                OperationType: data.searchOperationType,
+                OperatorName: data.searchOperatorName,
+                Result: data.searchRESULT,
+                startTime: startTime,
+                endTime: endTime
+            };
+
+            if (hg.table.datatablestatus && hg.table.datatablestatus.operationLogTable) {
+                hg.table.datatable('operationLogTable', 'reload', params);
+                return;
+            }
+
+            loadDatagrid(
+                params.PageName,
+                params.ButtonName,
+                params.OperationType,
+                params.OperatorName,
+                params.Result,
+                params.startTime,
+                params.endTime);
+        });
+    }
+
+    function resetClick() {
+        layui.use(['form'], function () {
+            var form = layui.form;
+            form.val('example', {
+                searchPageName: '',
+                searchButtonName: '',
+                searchOperationType: '',
+                searchOperatorName: '',
+                searchRESULT: ''
+            });
+            $('#dateRange').val('');
+            form.render();
+            searchClick();
+        });
+    }
+
+    layui.use(['table', 'layer'], function () {
+        var table = layui.table;
+        table.on('tool(operationLogTable)', function (obj) {
+            if (obj.event !== 'detail') {
+                return;
+            }
+
+            $.ajax({
+                type: 'get',
+                url: '/WMS/OperationLog/GetDetail',
+                data: { id: obj.data.ID },
+                dataType: 'json',
+                success: function (res) {
+                    if (!res || !res.success || !res.data) {
+                        hg.msg('未找到日志详情');
+                        return;
+                    }
+
+                    var row = res.data;
+                    var html = ''
+                        + '<div style="padding:12px;line-height:1.8;">'
+                        + '<div><b>操作时间：</b>' + FormatToDate(row.OperateTime) + '</div>'
+                        + '<div><b>操作人：</b>' + escapeHtml(row.OperatorName || '') + '</div>'
+                        + '<div><b>页面/按钮：</b>' + escapeHtml(row.PageName || '') + ' / ' + escapeHtml(row.ButtonName || '') + '</div>'
+                        + '<div><b>接口：</b>' + escapeHtml(row.Controller || '') + '/' + escapeHtml(row.Action || '') + '</div>'
+                        + '<div><b>结果：</b>' + escapeHtml(row.Result || '') + '</div>'
+                        + '<div><b>失败原因：</b>' + escapeHtml(row.ErrorMessage || '') + '</div>'
+                        + '<div><b>请求数据：</b><pre style="white-space:pre-wrap;word-break:break-all;">' + escapeHtml(formatJson(row.RequestData)) + '</pre></div>'
+                        + '<div><b>操作前：</b><pre style="white-space:pre-wrap;word-break:break-all;">' + escapeHtml(formatJson(row.DataBefore)) + '</pre></div>'
+                        + '<div><b>操作后：</b><pre style="white-space:pre-wrap;word-break:break-all;">' + escapeHtml(formatJson(row.DataAfter)) + '</pre></div>'
+                        + '</div>';
+
+                    layer.open({
+                        type: 1,
+                        title: '日志详情',
+                        area: ['760px', '80%'],
+                        content: html
+                    });
+                }
+            });
+        });
+    });
+
+    function formatJson(text) {
+        if (!text) {
+            return '';
+        }
+        try {
+            return JSON.stringify(JSON.parse(text), null, 2);
+        } catch (e) {
+            return text;
+        }
+    }
+
+    function escapeHtml(text) {
+        return $('<div/>').text(text || '').html();
+    }
+
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return r[2];
+        }
+        return null;
+    }
+</script>

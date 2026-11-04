@@ -1,0 +1,197 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <script src="~/Scripts/xm-select.js"></script>
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+            <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+            <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <form class="layui-form" action="" lay-filter="example">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        用户名
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="userName" name="userName" disabled=""
+                               class="layui-input">
+                        <input type="hidden" name="UserId" id="UserId" class="layui-input">
+
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        代表公司
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" name="trueName" id="trueName" disabled="" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">选择角色</label>
+                    <div class="layui-input-block">
+                        <div id="demo1" class="xm-select-demo"></div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label for="L_repass" class="layui-form-label"></label>
+                    <button class="layui-btn" lay-filter="add" lay-submit="">确定</button>
+                    <button class="layui-btn" onclick="cancelclick()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>       
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form,
+                    layer = layui.layer;
+
+                var UserId = GetQueryString('UserId');
+                var UserName = GetQueryString('UserName');
+                var TrueName = GetQueryString('TrueName');
+                form.val('example', {
+                    "userName": UserName
+                    , "UserId": UserId
+                    , "trueName": TrueName
+                });
+                form.render();
+
+
+                var a = eval(getSelectJson());
+                var demo1 = xmSelect.render({
+                    el: '#demo1',
+                    language: 'zn',
+                    data: a
+                })
+
+                //监听提交
+                form.on('submit(add)',
+                    function (data) {
+                        var values = demo1.getValue();
+                        var result;
+                        if (values.length <= 0) {
+                            hg.msg('请选择角色，再操作！');
+                            return false;
+                        }
+                        else {
+                            var d = "";
+                            for (var i = 0; i < values.length; i++) {
+                                d = d + "," + values[i].value;
+                            }
+                            saveUserAction(data, d);
+                            return false;
+                        }
+                    });
+                return false;
+            });
+        //绑定取消按钮操作
+        function cancelclick() {
+            hg.close();
+        }
+        function getToken() {
+            return GetQueryString("token");
+        }
+        //
+        //保存、编辑操作
+        function saveUserAction(data, d) {
+            //var result = true;
+            $.ajax({
+                type: "POST",
+                url: '/Users/SetUserRoles',
+                headers: {
+                    "Authorization": "Bearer " + getToken()  // ✅ 修复
+                },
+                data: { userid: data.field.UserId, roleidStr: d },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+                        //layer.alert("设置角色成功", {
+                        //    icon: 6
+                        //});
+                       // result = true;
+                        hg.msg('设置角色成功');
+                        hg.close();
+                        hg.base_reload();
+                    }
+                    else {
+                        //layer.alert("设置角色失败", {
+                        //    icon: 7
+                        //});
+                        hg.msg('设置角色失败');
+                        return false;
+                       // result = false;
+                    }
+                   
+                },
+                error: function (data) {
+                    //layer.alert("设置角色失败", {
+                    //    icon: 7
+                    //});
+                    hg.msg('设置角色失败');
+                    return false;
+                   // result = false;
+                }
+            })
+        }
+        //获取传过来的值
+        function GetQueryString(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null)
+                return decodeURI(r[2]);
+            return null;
+        }
+        // 后台返回数据
+        function getSelectJson() {
+
+            var data;
+            $.ajax({
+                type: "get",
+                async: false,//同步执行
+                url: "/Users/GetRolesSelectData",
+                dataType: "json",
+                success: function (result) {
+                    data = result;
+                },
+                error: function (message) {
+                    //$.messageBox('系统提示', message); return;
+                    layer.alert(message, { icon: 6 }); return;
+
+                }
+            })
+            return data;
+        }
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="a10f6c0f52404bec99bc3636d5982036" Name="Diagram1">
+        <EntityTypeShape EntityType="pm1032Model.sys_exception" Width="1.5" PointX="5.75" PointY="0.75" />
+        <EntityTypeShape EntityType="pm1032Model.sys_groups" Width="1.5" PointX="2.75" PointY="5.75" />
+        <EntityTypeShape EntityType="pm1032Model.sys_log" Width="1.5" PointX="5.75" PointY="4.75" />
+        <EntityTypeShape EntityType="pm1032Model.sys_permissions" Width="1.5" PointX="7.75" PointY="0.75" />
+        <EntityTypeShape EntityType="pm1032Model.sys_rolepermission" Width="1.5" PointX="4.75" PointY="7.75" />
+        <EntityTypeShape EntityType="pm1032Model.sys_roles" Width="1.5" PointX="7.75" PointY="6.75" />
+        <EntityTypeShape EntityType="pm1032Model.sys_setting" Width="1.5" PointX="9.75" PointY="0.75" />
+        <EntityTypeShape EntityType="pm1032Model.sys_userrole" Width="1.5" PointX="9.75" PointY="4.75" />
+        <EntityTypeShape EntityType="pm1032Model.sys_users" Width="1.5" PointX="9.75" PointY="7.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_agv_task" Width="1.5" PointX="0.75" PointY="10.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_agv_taxi" Width="1.5" PointX="2.75" PointY="10.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_base_deviceerrorlog" Width="1.5" PointX="4.75" PointY="10.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_base_location" Width="1.5" PointX="6.75" PointY="10.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_base_master" Width="1.5" PointX="11.75" PointY="0.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_base_warehouse" Width="1.5" PointX="11.75" PointY="6.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_base_zone" Width="1.5" PointX="11.75" PointY="10.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_countbody" Width="1.5" PointX="3" PointY="1.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_countdetail" Width="1.5" PointX="8.75" PointY="12.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_countheader" Width="1.5" PointX="0.75" PointY="1" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_inventorybook" Width="1.5" PointX="13.75" PointY="0.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_putin" Width="1.5" PointX="13.75" PointY="5.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_putinbindingbody" Width="1.5" PointX="13.75" PointY="11.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_putinbindingheader" Width="1.5" PointX="10.75" PointY="14.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_putoutbody" Width="1.5" PointX="15.75" PointY="0.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_putoutheader" Width="1.5" PointX="0.75" PointY="15.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_bill_weigh" Width="1.5" PointX="2.75" PointY="15.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_conveyor_task" Width="1.5" PointX="15.75" PointY="4.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_log" Width="1.5" PointX="15.75" PointY="9.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_report_work" Width="1.5" PointX="12.75" PointY="15.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_stocker_task" Width="1.5" PointX="15.75" PointY="13.75" />
+        <EntityTypeShape EntityType="pm1032Model.wms_transfer_task" Width="1.5" PointX="4.75" PointY="16.75" />
+        <AssociationConnector Association="pm1032Model.FK_WMS_BILL_COUNTBODY_WMS_BILL_COUNTHEADER_HEADERID" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

@@ -1,0 +1,564 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+            <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+            <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <form class="layui-form" action="" lay-filter="example">
+
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            公司名称<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="COMPANYNAME" name="COMPANYNAME" class="layui-input" lay-verify="required">
+                            <input type="hidden" id="typeflag" name="typeflag" class="layui-input">
+                            <input type="hidden" id="ID" name="ID" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            项目号<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="PROJECTCODE" name="PROJECTCODE" class="layui-input" lay-verify="required|noChinese">
+                        </div>
+                    </div>
+
+                </div>
+                @*<div class="layui-form-item">
+                        <label class="layui-form-label">
+                            项目号<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-block">
+                            <input type="text" id="PROJECTCODE" name="PROJECTCODE" class="layui-input" lay-verify="required">
+                        </div>
+                    </div>*@
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            项目名称<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="PROJECTNAME" name="PROJECTNAME" class="layui-input" lay-verify="required">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            型号<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="PROJECTTYPE" name="PROJECTTYPE" class="layui-input" lay-verify="required">
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            单价<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="UNITPRICE" name="UNITPRICE" lay-verify="required" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            数量<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="NUMBER" name="NUMBER" lay-verify="number" class="layui-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+
+                    <label class="layui-form-label">
+                        项目描述
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="DESCRIBE" name="DESCRIBE" class="layui-input" autocomplete="off" style="width:512px">
+                    </div>
+
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            预算<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="BUDGET" name="BUDGET" lay-verify="number" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            价格下限<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="MINPRICE" name="MINPRICE" lay-verify="number" class="layui-input">
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            价格上限<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="MAXPRICE" name="MAXPRICE" lay-verify="number" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            降价区间<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="RANGEPRICE" name="RANGEPRICE" lay-verify="number" class="layui-input">
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            开始时间<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input class="layui-input" autocomplete="off" placeholder="开始时间" id="STARTTIME" name="STARTTIME" lay-verify="required">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            截止时间<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input class="layui-input" autocomplete="off" placeholder="开始时间" id="ENDTIME" name="ENDTIME" lay-verify="required">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            竞价延时次数<label style="color:red"> *</label>
+                        </label>
+                        <div class="layui-input-inline">
+                            <input type="text" id="DELAYTIMES" name="DELAYTIMES" lay-verify="number" class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">
+                            项目文档
+                        </label>
+                        <div class="layui-input-inline">
+                            <div class="layui-btn-container">
+                                <button type="button" class="layui-btn" id="uploadfile"><i class="layui-icon"></i>上传文件(文件名不要过长)</button>
+                                <input type="hidden" id="FILEADDRESS" name="FILEADDRESS">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <label for="L_repass" class="layui-form-label"></label>
+                        <button class="layui-btn" lay-filter="add" lay-submit="">确定</button>
+                        <button class="layui-btn" onclick="cancelclick()">取消</button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+    layui.use(['upload', 'element', 'layer'], function () {
+        var $ = layui.jquery
+            , upload = layui.upload
+            , element = layui.element
+            , layer = layui.layer;
+
+
+        //上传指定文件
+        upload.render({ //允许上传的文件后缀
+            elem: '#uploadfile'
+            , url: '/BIDD/UnBiddingProject/Upload'
+            , accept: 'file' //普通文件
+            , exts: 'pdf|docx|doc|xls|xlsx' //只允许上传pdf文档文件
+            , done: function (res) {
+                //如果上传成功
+                if (res.src != "") {
+
+                    $('#FILEADDRESS').val(res.src);
+                    //dialog.tip(res.msg)
+                }
+                layer.msg(res.msg);
+
+            }
+        });
+    });
+    //组件初始化
+    layui.use(['form', 'layer', 'jquery'],
+        function () {
+            $ = layui.jquery;
+            var form = layui.form;
+            var typeflag = GetQueryString('typeflag');
+
+            //自定义验证规则
+
+            form.verify({
+                noChinese: function (value, item) {
+                    if (/[\u4E00-\u9FA5]/.test(value)) {
+                        return '输入值不能包含中文'; // 返回错误提示信息
+                    }
+                }
+            });
+            //var IDD = GetQueryString('ID');
+            //var WAREHOUSECODEd = GetQueryString('WAREHOUSECODE');
+            ////日期控件
+          
+            //初始化控件
+            if (typeflag == 0) {
+                hg.datetime('#STARTTIME', '#ENDTIME', {
+                    type: 'dt',
+                    value: hg.getdate('datetime', 0),  // 必须给今天，才能可选
+                    value2: '',
+                    min: '',
+                    max: '2099-12-31',
+                    min2: '',
+                    max2: '2099-12-31'
+                });
+                form.val('example', {
+                    "ID": ""
+                    , "COMPANYNAME": ""
+                    , "PROJECTCODE": ""
+                    , "PROJECTNAME": ""
+
+                    , "PROJECTTYPE": ""
+                    , "UNITPRICE": ""
+
+                    , "NUMBER": ""
+                    , "DESCRIBE": ""
+                    , "BUDGET": ""
+                    , "MINPRICE": ""
+                    , "MAXPRICE": ""
+
+                    , "RANGEPRICE": ""
+                    , "STARTTIME": ""
+                    , "ENDTIME": ""
+                    , "DELAYTIMES": ""
+                    , "FILEADDRESS": ""
+                    , "typeflag": typeflag
+                });
+
+                ////日期控件
+                //hg.datetime('#start', '#ENDTIME', {
+                //    type: 'datetime',
+                //    value: hg.getdate('datetime', -30),
+                //    value2: hg.getdate('datetime', '23:59:59'),
+                //    min: hg.getdate('date', -365),
+                //    max: hg.getdate(),
+                //});
+                form.render();
+            }
+            else {
+                var ID = GetQueryString('ID');
+
+                var COMPANYNAME = GetQueryString('COMPANYNAME');
+                var PROJECTCODE = GetQueryString('PROJECTCODE');
+                var PROJECTNAME = GetQueryString('PROJECTNAME');
+                //var ROWNUM = GetQueryString('ROWNUM');
+                //var COLUMNNUM = GetQueryString('COLUMNNUM');
+                //var LAYERNUM = GetQueryString('LAYERNUM');
+                var PROJECTTYPE = GetQueryString('PROJECTTYPE');
+                var UNITPRICE = GetQueryString('UNITPRICE');
+                var NUMBER = GetQueryString('NUMBER');
+                var DESCRIBE = GetQueryString('DESCRIBE');
+                var BUDGET = GetQueryString('BUDGET');
+
+                var MINPRICE = GetQueryString('MINPRICE');
+                var MAXPRICE = GetQueryString('MAXPRICE');
+                var RANGEPRICE = GetQueryString('RANGEPRICE');
+                var DELAYTIMES = GetQueryString('DELAYTIMES');
+                var FILEADDRESS = GetQueryString('FILEADDRESS');
+                var STARTTIME = FormatToDate(GetQueryString('STARTTIME'));
+                var ENDTIME = FormatToDate(GetQueryString('ENDTIME'));
+                form.val('example', {
+                    "ID": ID
+                    , "COMPANYNAME": COMPANYNAME
+                    , "PROJECTCODE": PROJECTCODE
+                    , "PROJECTNAME": PROJECTNAME
+
+                    , "PROJECTTYPE": PROJECTTYPE
+                    , "UNITPRICE": UNITPRICE
+
+                    , "NUMBER": NUMBER
+                    , "DESCRIBE": DESCRIBE
+                    , "BUDGET": BUDGET
+                  
+                    , "MINPRICE": MINPRICE
+                    , "MAXPRICE": MAXPRICE
+                    , "RANGEPRICE": RANGEPRICE
+                    , "DELAYTIMES": DELAYTIMES
+                    , "FILEADDRESS": FILEADDRESS
+                    , "typeflag": typeflag
+                });
+                hg.datetime('#STARTTIME', '#ENDTIME', {
+                    type: 'dt',
+                    value: STARTTIME,  // 必须给今天，才能可选
+                    value2: ENDTIME,
+                    min: '',
+                    max: '2099-12-31',
+                    min2: '',
+                    max2: '2099-12-31'
+                });
+                ////日期控件
+                //hg.datetime('#start', '#STARTTIME', {
+                //    type: 'datetime',
+                //    value: hg.getdate('datetime', -30),
+                //    value2: STARTTIME,
+                //    min: hg.getdate('date', -365),
+                //    max: hg.getdate(),
+                //});
+                ////日期控件
+                //hg.datetime('#STARTTIME', '#ENDTIME', {
+                //    type: 'datetime',
+                //    value: STARTTIME,
+                //    value2: ENDTIME,
+                //    min: hg.getdate('date', -365),
+                //    max: hg.getdate(),
+                //});
+                //if (ENABLED == 1) {
+                //    $("input[name='ENABLED']").attr("checked", "checked");
+                //} else {
+                //    $("input[name='ENABLED']").removeAttr("checked");
+                //}
+                //$("#ZONECODE").val(ZONECODE);
+                //$("#TYPE").val(TYPE);
+                $("#COMPANYNAME").attr("disabled", "disabled");
+                $("#PROJECTCODE").attr("disabled", "disabled");
+                form.render();
+
+            }
+            //监听提交
+            form.on('submit(add)',
+                function (data) {
+                    saveAction(data);
+                    return false;
+                });
+
+        });
+
+
+    //绑定取消按钮操作
+    function cancelclick() {
+        //var index = parent.layer.index; //获取当前弹层的索引号
+        //parent.layer.close(index); //关闭当前弹层
+        hg.close();
+    }
+    function getToken() {
+        return GetQueryString("token");
+    }
+    function saveAction(data) {
+        var url = data.field.typeflag == "0"
+            ? '/BIDD/UnBiddingProject/AddProduct'
+            : '/BIDD/UnBiddingProject/EditProduct';
+
+        $.ajax({
+            type: "POST",
+            url: url,
+            headers: {
+                "Authorization": "Bearer " + getToken()  // ✅ 修复
+            },
+            data: data.field,
+            dataType: "json",
+            success: function (res) {
+                if (res.result === true) {
+                    hg.msghide("保存成功"); // ✅ 使用框架支持的提示
+                    // ✅ 再关闭弹窗
+                    setTimeout(function () {
+                        hg.close();
+                    }, 500);
+                    // ✅ 先刷新父页面
+                    parent.searchClick();
+
+
+                } else {
+                    hg.msg("保存失败：" + (res.message || res.result));
+                }
+            },
+            error: function () {
+                hg.msg("请求异常");
+            }
+        });
+    }
+    //
+    //保存、编辑操作
+    function saveAction(data) {
+        //var ENABLED = 1;
+        //if (typeof (data.field.ENABLED) == "undefined") {
+        //    ENABLED = 0;
+        //}
+        //var ISAVIALABLE = 1;
+        //if (typeof (data.field.ISAVIALABLE) == "undefined") {
+        //    ISAVIALABLE = 0;
+        //}
+        if (data.field.typeflag == "0") {
+            $.ajax({
+                type: "POST",
+                url: '/BIDD/UnBiddingProject/AddProduct',
+                data: {
+
+                    COMPANYNAME: data.field.COMPANYNAME,
+                    PROJECTCODE: data.field.PROJECTCODE,
+                    PROJECTNAME: data.field.PROJECTNAME,
+
+                    PROJECTTYPE: data.field.PROJECTTYPE,
+                    UNITPRICE: data.field.UNITPRICE,
+                    NUMBER: data.field.NUMBER,
+                    DESCRIBE: data.field.DESCRIBE,
+                    BUDGET: data.field.BUDGET,
+                    MINPRICE: data.field.MINPRICE,
+                    MAXPRICE: data.field.MAXPRICE,
+
+                    RANGEPRICE: data.field.RANGEPRICE,
+                    STARTTIME: data.field.STARTTIME,
+                    DELAYTIMES: data.field.DELAYTIMES,
+                    FILEADDRESS: data.field.FILEADDRESS,
+                    ENDTIME: data.field.ENDTIME
+                },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+                        hg.msg("添加成功");
+                        var index = parent.layer.getFrameIndex(window.name);
+                        parent.layui.table.reload('product');//重载父页表格，参数为表格ID
+                        parent.layer.close(index);
+                    }
+                    else {
+                        hg.msg("添加失败:" + data.result);
+                        return false;
+                    }
+
+                },
+                error: function (data) {
+                    hg.msg("添加失败:" + data.result);
+                    return false;
+                }
+            })
+        } else {
+            $.ajax({
+                type: "POST",
+                url:  '/BIDD/UnBiddingProject/EditProduct',
+                data: {
+                    ID: data.field.ID,
+                    COMPANYNAME: data.field.COMPANYNAME,
+                    PROJECTCODE: data.field.PROJECTCODE,
+                    PROJECTNAME: data.field.PROJECTNAME,
+
+                    PROJECTTYPE: data.field.PROJECTTYPE,
+                    UNITPRICE: data.field.UNITPRICE,
+                    NUMBER: data.field.NUMBER,
+                    DESCRIBE: data.field.DESCRIBE,
+                    BUDGET: data.field.BUDGET,
+                    MINPRICE: data.field.MINPRICE,
+                    MAXPRICE: data.field.MAXPRICE,
+                    DELAYTIMES: data.field.DELAYTIMES,
+                    FILEADDRESS: data.field.FILEADDRESS,
+                    RANGEPRICE: data.field.RANGEPRICE,
+                    STARTTIME: data.field.STARTTIME,
+                    ENDTIME: data.field.ENDTIME
+                },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+                        hg.msg("修改成功");
+                        var index = parent.layer.getFrameIndex(window.name);
+                        parent.layui.table.reload('product');//重载父页表格，参数为表格ID
+                        parent.layer.close(index);
+                    }
+                    else {
+                        hg.msg("修改失败:" + data.result);
+                        return false;
+                    }
+
+                },
+                error: function (data) {
+                    hg.msg("修改失败:" + data.result);
+                    return false;
+                }
+            })
+        }
+
+
+    }
+    //获取传过来的值
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return decodeURI(r[2]);
+        return null;
+    }
+
+    //获取select数句
+
+    function getSelectZoneData(code, name) {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/WMS/Location/GetSearchSelectListByZone',
+            data: { code: code, name: name },
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+
+</script>

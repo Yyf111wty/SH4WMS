@@ -1,0 +1,22 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>测试页面</title>
+</head>
+<body>
+    <h1>@ViewBag.Message</h1>
+    <p>链接到详情： <a href="@Url.Action("Detail","Pages", new { id = "123" })">Detail 123</a></p>
+    <div>
+        <table>
+            
+        </table>
+    </div>
+</body>
+</html>

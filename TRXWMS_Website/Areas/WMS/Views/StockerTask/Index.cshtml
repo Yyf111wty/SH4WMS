@@ -1,0 +1,460 @@
+﻿
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>堆垛机任务
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchSOURCEORDER" placeholder="单据编号" class="layui-input" id="searchSOURCEORDER">
+                        </div>
+
+                        <div class="layui-inline"  id="locationcodediv">
+							<select id="searchZONECODE" name="searchZONECODE" readonly="true" placeholder="库区编码">
+								<option value="">库区编码</option>
+								<option value="101-1">原材料库</option>
+								<option value="201-1">半成品库</option>
+								<option value="301-1">成品库</option>
+								<option value="401-1">冷藏库</option>
+							</select>
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchCONTAINER" placeholder="载具编号" class="layui-input" id="searchCONTAINER">
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchSTARTTAXI" placeholder="任务起点" class="layui-input" id="searchSTARTTAXI">
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchENDTAXI" placeholder="任务终点" class="layui-input" id="searchENDTAXI">
+                        </div>
+
+                        @*<div class="layui-inline">
+                            <input type="text" name="searchITEMCODE" placeholder="物料编号" class="layui-input" id="searchITEMCODE">
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchITEMNAME" placeholder="物料名称" class="layui-input" id="searchITEMNAME">
+                        </div>*@
+
+                        <div class="layui-inline">
+                            <select id="searchtasktype" name="searchtasktype" readonly="true" placeholder="任务类型">
+                                <option value="-10">任务类型</option>
+                                <option value="1">入库</option>
+                                <option value="2">出库</option>
+                                <option value="3">移库</option>
+                            </select>
+                        </div>
+
+                        <div class="layui-inline">
+                            <select id="searchtaskstation" name="searchtaskstation" readonly="true" placeholder="任务状态">
+                                <option value="-10">任务状态</option>                              
+                                <option value="0">待执行</option>
+                                <option value="1">正在执行</option>
+                                <option value="2">已完成</option>
+                                <option value="3">已装盘</option>
+                                <option value="5">异常</option>
+                            </select>
+                        </div>
+
+                        @*<div class="layui-inline">
+                            <input type="text" name="searchSTARTTIME" class="layui-input" id="searchSTARTTIME" placeholder="开始时间">
+                        </div>
+
+                        <div class="layui-inline">
+                            <input type="text" name="searchFINISHTIME" class="layui-input" id="searchFINISHTIME" placeholder="完成时间">
+                        </div>*@
+
+
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div">
+                </div>
+                <table class="layui-hide" id="StockerTask" lay-filter="StockerTask"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm">
+                Copyright @@ks-jichen.com  2026-2027 All Rights Reserved.
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+
+    //layui.use('laydate', function () {
+    //    var laydate = layui.laydate;
+    //    //日期时间选择器
+    //    laydate.render({
+    //        elem: '#searchSTARTTIME'
+    //        , type: 'datetime'
+    //    });
+    //    laydate.render({
+    //        elem: '#searchFINISHTIME'
+    //        , type: 'datetime'
+    //    });
+
+    //});
+    //初始化
+    $(function () {
+        var pageId = GetQueryString('pageId');
+		loadGroupFormButton(pageId);
+		var user = getUsertData();
+		if (user == 'bcp' || user == 'ycl' || user == 'cp' || user == 'lck') {
+			$("#locationcodediv").hide();
+		}
+        searchClick();
+	})
+
+	//获取用户名
+	function getUsertData() {
+		var data;
+		$.ajax({
+			type: "post",
+			url: '/Location/GetUsertData',
+			dataType: "json",
+			async: false,
+			success: function (d) {
+				data = d;
+			}
+		});
+		return data;
+	}
+    function loadDatagrid(SOURCEORDER, ZONECODE, CONTAINER, STARTTAXI, ENDTAXI,  TYPE, STATE) {
+        var tableCols = [[ //表头
+			{ field: 'ID', title: '任务编号', align: 'center', width: 200, sort: true},
+			{ field: 'CODE', title: '任务编号', align: 'center', width: 150, sort: true, hide: true },
+            { field: 'SOURCEORDER', title: '单据编号', align: 'center', width: 240, sort: true},
+            {
+                field: 'ZONECODE', title: '库区编码', align: 'center', width: 150, sort: true
+                   
+            },
+            { field: 'CONTAINER', title: '载具编号', align: 'center', width: 150, sort: true, },
+            {
+                field: 'TYPE', title: '类型', align: 'center', width: 100, sort: true, templet:
+                    function (d) {
+                        if (d.TYPE == 1) {
+                            return "<span class='layui-badge layui-bg-blue'>入库</span>"
+                        } else if (d.TYPE == 2) {
+                            return "<span class='layui-badge layui-bg-green'>出库</span>"
+
+                        }
+                    }
+            },
+            //{
+            //    field: 'ITEMCODE', title: '物料编码', align: 'center', width: 150, sort: true,
+            //},
+            //{ field: 'ITEMNAME', title: '物料名称', align: 'center', width: 150, sort: true, },
+            { field: 'PRIORITY', title: '优先级', align: 'center', width: 100, sort: true },
+            { field: 'STARTTAXI', title: '开始位置', align: 'center', width: 100, sort: true },
+            { field: 'ENDTAXI', title: '终点位置', align: 'center', width: 100, sort: true, },
+            {
+                field: 'STATE', title: '状态', align: 'center', width: 100, sort: true, templet:
+                    function (d) {
+                        if (d.STATE == 0) {
+                            return "<span class='layui-badge layui-bg-gray'>新建</span>"
+                        } else if (d.STATE == 1) {
+                            return "<span class='layui-badge layui-bg-yellow'>正在执行</span>"
+
+                        } else if (d.STATE == 2) {
+                            return "<span class='layui-badge layui-bg-green'>已完成</span>"
+                        } else if (d.STATE == 3) {
+                            return "<span class='layui-badge layui-bg-blue'>已装盘</span>"
+                        } else if (d.STATE == 5) {
+                            return "<span class='layui-badge layui-bg-red'>异常结束</span>"
+                        } else if (d.STATE == -1) {
+                            return "<span class='layui-badge layui-bg-red'>等待执行</span>"
+                        } else if (d.STATE == -2) {
+                            return "<span class='layui-badge layui-bg-red'>等待批准</span>"
+                        }
+                    }
+            },
+            {
+                field: 'STARTTIME', title: '开始时间', align: 'center', width: 200, sortable: true,
+                templet:
+                    function (d) {
+                        return FormatToDate(d.STARTTIME);
+                    }
+            },
+            {
+                field: 'IMPLEMENTTIME', title: '下发时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.IMPLEMENTTIME);
+                    }
+            },
+            {
+                field: 'FINISHTIME', title: '完成时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.FINISHTIME);
+                    }
+            },
+
+            { field: 'CREATOR', title: '创建人', align: 'center', width: 100, sort: true, },
+            {
+                field: 'CREATETIME', title: '创建时间', align: 'center', width: 200, sortable: true,
+                templet:
+                    function (d) {
+                        return FormatToDate(d.CREATETIME);
+                    }
+            },
+            { field: 'LASTEDITOR', title: '更新人', align: 'center', width: 100, sort: true, },
+            {
+                field: 'LASTEDITTIME', title: '更新时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.LASTEDITTIME);
+                    }
+            },
+        ]]
+        hg.table.datatable('StockerTask', '堆垛机任务', '/WMS/StockerTask/GetRowData',
+        {
+            SOURCEORDER: SOURCEORDER ,
+            ZONECODE: ZONECODE ,
+            CONTAINER: CONTAINER ,
+            STARTTAXI: STARTTAXI ,
+            ENDTAXI: ENDTAXI ,
+            //ITEMCODE: ITEMCODE ,
+            //ITEMNAME: ITEMNAME ,
+            TYPE: TYPE ,
+            STATE: STATE 
+         
+        },
+        tableCols, '', true, 'full-255');
+    }
+    //查询
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form;
+                var data = form.val('example');
+                var SOURCEORDER = data.searchSOURCEORDER;
+				var ZONECODE = data.searchZONECODE;
+                var CONTAINER = data.searchCONTAINER;
+                var STARTTAXI = data.searchSTARTTAXI;
+                var ENDTAXI = data.searchENDTAXI;
+                //var ITEMCODE = data.searchITEMCODE;
+                //var ITEMNAME = data.searchITEMNAME;
+                var TYPE = data.searchtasktype;
+                var STATE = data.searchtaskstation;
+                //var STARTTIME = data.searchSTARTTIME;
+                //var FINISHTIME = data.searchFINISHTIME;
+                loadDatagrid(SOURCEORDER, ZONECODE, CONTAINER, STARTTAXI, ENDTAXI, TYPE, STATE);
+            })
+    }
+
+    function addClick() {
+        hg.open('新增', '/WMS/StockerTask/AddOrEdit?typeflag=0', 500, 400);
+    }
+    //修改
+    function editClick() {
+        //obj通过行tool修改-lay-event
+        var row = hg.table.datatable('StockerTask', 'getSelected');
+        if (row) {
+            var datas =
+                "&ID=" + row.data.ID +
+                "&CODE=" + row.data.CODE +
+                "&SOURCEORDER=" + row.data.SOURCEORDER +
+                "&WAREHOUSECODE=" + row.data.WAREHOUSECODE +
+                "&CONTAINER=" + row.data.CONTAINER +
+                "&STARTTAXI=" + row.data.STARTTAXI +
+                "&ENDTAXI=" + row.data.ENDTAXI +
+                "&ITEMCODE=" + row.data.ITEMCODE +
+                "&ITEMNAME=" + row.data.ITEMNAME +
+                "&TYPE=" + row.data.TYPE +
+                "&PRIORITY=" + row.data.PRIORITY +
+                "&STATE=" + row.data.STATE
+                ;
+            hg.open('编辑', '/WMS/StockerTask/AddOrEdit?typeflag=1' + datas, 500, 400);
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    //失效
+    function delClick() {
+        //obj通过行tool删除-lay-event
+        var row = hg.table.datatable('StockerTask', 'getSelected');
+        if (row) {
+            hg.confirm("确定删除此信息吗？", function () {
+                //row.del(); //只删本地数据
+                $.ajax({
+                    async: false,
+                    type: "POST",
+                    url: '/WMS/StockerTask/DeleteProduct',
+                    data: { ID: row.data.ID },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg('删除成功！');
+                            setTimeout(function () { searchClick(); }, 500);
+                        }
+                        else {
+                            hg.msg('删除失败！');
+                        }
+
+                    },
+                    error: function (data) {
+                        hg.msg('删除失败！');
+                    }
+                })
+
+
+            });
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+
+    function cancelClick() {
+        var row = hg.table.datatable('StockerTask', 'getSelected');
+        if (row) {
+            hg.confirm("确定取消此出库任务吗？", function () {
+                //row.del(); //只删本地数据
+                $.ajax({
+                    async: false,
+                    type: "POST",
+                    url: '/WMS/StockerTask/cancel',
+                    data: { ID: row.data.ID },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg('取消成功！');
+                            setTimeout(function () { searchClick(); }, 500);
+                        }
+                        else {
+                            hg.msg('取消失败，原因：' + data.msg);
+                        }
+
+                    },
+                    error: function (data) {
+                        hg.msg('取消失败，原因：' + data.msg);
+                    }
+                })
+
+
+            });
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    function finishClick() {
+        var row = hg.table.datatable('StockerTask', 'getSelected');
+        if (row) {
+            hg.confirm("确定完成此出库任务吗？", function () {
+                //row.del(); //只删本地数据
+                $.ajax({
+                    async: false,
+                    type: "POST",
+                    url: '/WMS/StockerTask/finish',
+                    data: { ID: row.data.ID },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg('完成成功！');
+                            setTimeout(function () { searchClick(); }, 500);
+                        }
+                        else {
+                            hg.msg('完成失败，原因：' + data.msg);
+                        }
+
+                    },
+                    error: function (data) {
+                        hg.msg('完成失败，原因：' + data.msg);
+                    }
+                })
+
+
+            });
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    function replayClick() {
+        var row = hg.table.datatable('StockerTask', 'getSelected');
+        if (row) {
+            hg.confirm("确定重新下发此出库任务吗？", function () {
+                //row.del(); //只删本地数据
+                $.ajax({
+                    async: false,
+                    type: "POST",
+                    url: '/WMS/StockerTask/replay',
+                    data: { ID: row.data.ID },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg('下发成功！');
+                            setTimeout(function () { searchClick(); }, 500);
+                        }
+                        else {
+                            hg.msg('下发失败，原因：' + data.msg);
+                        }
+
+                    },
+                    error: function (data) {
+                        hg.msg('下发失败，原因：' + data.msg);
+                    }
+                })
+
+
+            });
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    //获取参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return (r[2]);
+        return null;
+    }
+
+
+</script>

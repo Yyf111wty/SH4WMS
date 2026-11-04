@@ -1,0 +1,216 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layui动态表格操作</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.1/dist/css/layui.min.css">
+    <style>
+
+        .layui-row {
+            height: 100vh; /* 使容器高度等于视口高度 */
+        }
+
+        .layui-col-xs12, .layui-col-sm12, .layui-col-md12, .layui-col-lg12 {
+            height: 50%; /* 各占一半 */
+        }
+    </style>
+</head>
+<body>
+  
+    <div class="layui-card">
+        <div class="layui-card-header">动态表格操作演示</div>
+        <div class="layui-card-body">
+            <div class="layui-row">
+                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12">
+                    <!-- 第一个表格 -->
+                    <table id="demoTable" lay-filter="demoTable" class="layui-table"></table>
+                </div>
+                <div class="layui-col-xs12 layui-col-sm12 layui-col-md12 layui-col-lg12"    >
+                    <table id="demo1Table" lay-filter="demo1Table" class="layui-table"></table>
+                </div>
+            </div>
+            </div>
+            @*<div class="layui-card-body" id="tabbody">
+                <div class="row" id="tablesdiv">
+                    <div class="row" id="typeheadrow">
+                        <table id="demoTable" lay-filter="demoTable"></table>
+                    </div>
+                    <div class="row" id="typebodyrow" style="display:none">
+                        <table id="demo1Table" lay-filter="demo1Table"></table>
+                    </div>
+                </div>
+            </div>*@
+
+        </div>
+
+
+        <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/layui@2.9.1/dist/layui.min.js"></script>
+        <script>
+            layui.use(['table', 'layer', 'jquery'], function () {
+                var table = layui.table;
+                var layer = layui.layer;
+                var $ = layui.$;
+
+
+                // 初始化表格
+                table.render({
+                    elem: '#demoTable',
+                    url: '', // 可以设置为实际的数据接口
+                    height: 'full-100',
+                    page: true,
+                    cols: [[
+                        { field: 'id', title: 'ID', width: 80, sort: true },
+                        { field: 'username', title: '用户名', width: 120 },
+                        { field: 'email', title: '邮箱', width: 200 },
+                        { field: 'city', title: '城市', width: 100 },
+                        { field: 'sign', title: '签名', minWidth: 150 },
+                        { title: '操作', width: 300, toolbar: '#demoOperate' }
+                    ]],
+                    data: [{
+                        id: 1,
+                        username: '用户1',
+                        email: 'user1@example.com',
+                        city: '北京',
+                        sign: '这是一个测试签名'
+                    }, {
+                        id: 2,
+                        username: '用户2',
+                        email: 'user2@example.com',
+                        city: '上海',
+                        sign: '另一个测试签名'
+                    }, {
+                        id: 3,
+                        username: '用户3',
+                        email: 'user3@example.com',
+                        city: '广州',
+                        sign: '第三个测试签名'
+                    }],
+                    id: 'tableId'
+                });
+
+                // 监听工具条事件
+                table.on('tool(demoTable)', function (obj) {
+                    var data = obj.data;
+                    var tr = obj.tr;
+
+                    if (obj.event === 'operate') {
+                        currentData = data;
+                        $('#typeheadrow').height(totalHeight);
+                        // 隐藏所有行，只显示当前行
+                        $('.layui-table-body tr').each(function () {
+                            if ($(this).index() !== tr.index()) {
+                                $(this).hide();
+                            }
+                        });
+
+                        // 计算单行高度并设置表格高度
+                        var rowHeight = tr.outerHeight();
+                        var headerHeight = $('.layui-table-header').outerHeight();
+                        var totalHeight = headerHeight + rowHeight + 2;
+
+                        // 调整表格高度
+                        table.resize('tableId', {
+                            height: totalHeight
+                        });
+
+                        $('#typebodyrow').show();
+
+                        // 替换操作列为输入框和报价按钮
+                        var operateCell = tr.find('td:last-child');
+                        operateCell.html(`
+                                        <div class="layui-input-inline" style="margin-right: 10px;">
+                                            <input type="text" class="layui-input" placeholder="输入报价" id="quoteInput_${data.id}">
+                                        </div>
+                                        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="submitQuote(${data.id})">报价</button>
+                                        <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="resetTable()">取消</button>
+                                    `);
+                    }
+                });
+
+
+
+            });
+
+
+            layui.use(['table', 'layer', 'jquery'], function () {
+                var table = layui.table;
+                var layer = layui.layer;
+                var $ = layui.$;
+
+
+                table.render({
+                    elem: '#demo1Table',
+                    url: '', // 可以设置为实际的数据接口
+                    height: 'full-100',
+                    page: true,
+                    cols: [[
+                        { field: 'id', title: 'ID', width: 80, sort: true },
+                        { field: 'username', title: '用户名', width: 120 },
+                        { field: 'email', title: '邮箱', width: 200 },
+                        { field: 'city', title: '城市', width: 100 },
+                        { field: 'sign', title: '签名', minWidth: 150 }
+                    ]],
+                    data: [{
+                        id: 1,
+                        username: '用户1',
+                        email: 'user1@example.com',
+                        city: '北京',
+                        sign: '这是一个测试签名'
+                    }, {
+                        id: 2,
+                        username: '用户2',
+                        email: 'user2@example.com',
+                        city: '上海',
+                        sign: '另一个测试签名'
+                    }, {
+                        id: 3,
+                        username: '用户3',
+                        email: 'user3@example.com',
+                        city: '广州',
+                        sign: '第三个测试签名'
+                    }],
+                    id: 'tableId'
+                });
+
+              
+
+            });
+
+        
+
+            // 获取表格配置的方法
+            function getThisTableConfig(id) {
+                var config = null;
+                var allTable = table.cache.tableId;
+                if (allTable && allTable.config) {
+                    config = allTable.config;
+                }
+                return config;
+            }
+            // 提交报价函数
+            function submitQuote(id) {
+                var inputValue = $('#quoteInput_' + id).val();
+                if (!inputValue) {
+                    layer.msg('请输入报价金额');
+                    return;
+                }
+                layer.msg('报价提交成功：' + inputValue);
+                // 这里可以添加实际的提交逻辑
+            }
+
+
+            // 重置表格函数
+            function resetTable() {
+                location.reload(); // 简单重置，实际项目中可以更优雅的实现
+            }
+        </script>
+
+
+        <!-- 操作列模板 -->
+        <script type="text/html" id="demoOperate">
+            <button class="layui-btn layui-btn-xs" lay-event="operate">操作</button>
+        </script>
+</body>
+</html>

@@ -1,0 +1,1392 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="TRWCSModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="sys_Groups">
+          <Key>
+            <PropertyRef Name="GroupName" />
+            <PropertyRef Name="ParentGroupId" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="GroupName" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="ParentGroupId" Type="int" Nullable="false" />
+          <Property Name="IsEnabled" Type="bit" />
+          <Property Name="Describe" Type="nvarchar" MaxLength="200" />
+          <Property Name="CreateTime" Type="datetime" />
+          <Property Name="CreateOperator" Type="nvarchar" MaxLength="20" />
+          <Property Name="UpdateTime" Type="datetime" />
+          <Property Name="UpdateOperator" Type="nvarchar" MaxLength="20" />
+          <Property Name="State" Type="varchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="sys_Permissions">
+          <Key>
+            <PropertyRef Name="Id" />
+            <PropertyRef Name="NodeName" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="NodeName" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="IsEnabled" Type="bit" />
+          <Property Name="ImageUrl" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Icon" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="Type" Type="varchar" MaxLength="20" />
+          <Property Name="LinkUrl" Type="nvarchar" MaxLength="50" />
+          <Property Name="ControllerName" Type="nvarchar" MaxLength="50" />
+          <Property Name="ActionName" Type="nvarchar" MaxLength="50" />
+          <Property Name="KeyName" Type="varchar" MaxLength="20" />
+          <Property Name="ParentId" Type="int" />
+          <Property Name="SortNo" Type="int" />
+          <Property Name="CreateTime" Type="datetime" />
+          <Property Name="CreateOperator" Type="nvarchar" MaxLength="50" />
+          <Property Name="UpdateTime" Type="datetime" />
+          <Property Name="UpdateOperator" Type="nvarchar" MaxLength="50" />
+          <Property Name="State" Type="varchar" MaxLength="10" />
+        </EntityType>
+        <!--生成过程中发现错误:
+警告 6002: 表/视图“TRWCS.dbo.sys_RolePermission”未定义主键。已推断出该键，并将定义创建为只读的表/视图。-->
+        <EntityType Name="sys_RolePermission">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="RoleId" Type="int" />
+          <Property Name="PermissionId" Type="int" />
+          <Property Name="CreateTime" Type="datetime" />
+          <Property Name="CreateOperator" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="sys_Roles">
+          <Key>
+            <PropertyRef Name="RoleName" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="RoleName" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="IsEnabled" Type="bit" />
+          <Property Name="Describe" Type="nvarchar" MaxLength="100" />
+          <Property Name="RoleLevel" Type="int" />
+          <Property Name="CreateTime" Type="datetime" />
+          <Property Name="CreateOperator" Type="nvarchar" MaxLength="50" />
+          <Property Name="UpdateTime" Type="datetime" />
+          <Property Name="UpdateOperator" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <!--生成过程中发现错误:
+警告 6002: 表/视图“TRWCS.dbo.sys_UserRole”未定义主键。已推断出该键，并将定义创建为只读的表/视图。-->
+        <EntityType Name="sys_UserRole">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserId" Type="int" />
+          <Property Name="RoleId" Type="int" />
+          <Property Name="CreateTime" Type="datetime" />
+          <Property Name="CreateOperator" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="sys_Users">
+          <Key>
+            <PropertyRef Name="UserName" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserName" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Password" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="TrueName" Type="nvarchar" MaxLength="10" Nullable="false" />
+          <Property Name="UserGroupId" Type="int" Nullable="false" />
+          <Property Name="Mobile" Type="nvarchar" MaxLength="11" />
+          <Property Name="Email" Type="nvarchar" MaxLength="20" />
+          <Property Name="CreateTime" Type="datetime" />
+          <Property Name="CreateOperator" Type="nvarchar" MaxLength="50" />
+          <Property Name="UpdateTime" Type="datetime" />
+          <Property Name="UpdateOperator" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_CODESET">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="CODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" />
+          <Property Name="KEY" Type="nvarchar" MaxLength="50" />
+          <Property Name="REMARK" Type="nvarchar" MaxLength="200" />
+          <Property Name="CREATEOR" Type="nvarchar" MaxLength="50" />
+          <Property Name="CREATETIIME" Type="datetime" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_DEVICE">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="DEVICECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="DEVICETYPE" Type="int" />
+          <Property Name="DEVICEPROPERTY" Type="int" />
+          <Property Name="DEVICESTATION" Type="int" />
+          <Property Name="ERRORCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ZONECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="IP" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_LOCATION">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="FACTORYCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="WAREHOUSECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ZONEID" Type="nvarchar" MaxLength="50" />
+          <Property Name="ZONECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ROW" Type="int" />
+          <Property Name="RANK" Type="int" />
+          <Property Name="TIER" Type="int" />
+          <Property Name="TUNNEL" Type="int" />
+          <Property Name="SORTTYPE" Type="int" />
+          <Property Name="EXITOROUT" Type="int" />
+          <Property Name="LOCATIONTYPE" Type="int" />
+          <Property Name="INSTOCK" Type="int" />
+          <Property Name="LOCATIONSTATION" Type="int" />
+          <Property Name="IFUNUSE" Type="bit" />
+          <Property Name="CURRENTCONTAINER" Type="nvarchar" MaxLength="50" />
+          <Property Name="XYZ" Type="nvarchar" MaxLength="50" />
+          <Property Name="CHECKXYZ" Type="nvarchar" MaxLength="50" />
+          <Property Name="SPECS" Type="nvarchar" MaxLength="50" />
+          <Property Name="IFMIXING" Type="bit" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_MASTER">
+          <Key>
+            <PropertyRef Name="id" />
+          </Key>
+          <Property Name="id" Type="int" Nullable="false" />
+          <Property Name="FACTORYCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="100" />
+          <Property Name="ITEMNAME" Type="nvarchar" MaxLength="100" />
+          <Property Name="ITEMPEC" Type="nvarchar" MaxLength="50" />
+          <Property Name="STORAGETIME" Type="nvarchar" MaxLength="20" />
+          <Property Name="UNUSETIME" Type="datetime" />
+          <Property Name="MINSTOCK" Type="int" />
+          <Property Name="MAXSTOCK" Type="int" />
+          <Property Name="IFUSE" Type="int" />
+          <Property Name="IFBINDMUL" Type="int" />
+          <Property Name="BATCH" Type="nvarchar" MaxLength="200" />
+          <Property Name="Entrance" Type="nvarchar" MaxLength="50" />
+          <Property Name="OUTERMODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="STORAGEAREAS" Type="nvarchar" MaxLength="50" />
+          <Property Name="PICKPOSITION" Type="nvarchar" MaxLength="50" />
+          <Property Name="THRESHOLD" Type="int" />
+          <Property Name="PRIORITYLEVEL" Type="int" />
+          <Property Name="ITEMTYPE" Type="int" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_ReplenishSet">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="SOURCEFACTORY" Type="nvarchar" MaxLength="50" />
+          <Property Name="SOURCEWAREHOUSE" Type="nvarchar" MaxLength="50" />
+          <Property Name="TARGETWAREHOUSE" Type="nvarchar" MaxLength="50" />
+          <Property Name="TARGETZONE" Type="nvarchar" MaxLength="50" />
+          <Property Name="TARGETLOCATION" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMNAME" Type="nvarchar" MaxLength="50" />
+          <Property Name="ENABLEFLAG" Type="bit" />
+          <Property Name="MAXSTORAGE" Type="int" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="CREATOR" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_BODY">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="BILLID" Type="int" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="QTY" Type="int" />
+          <Property Name="PACKQTY" Type="int" />
+          <Property Name="FINISHQTY" Type="int" />
+          <Property Name="FINISHPACKQTY" Type="int" />
+          <Property Name="STATION" Type="int" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_COUNTBODY">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="HEADERID" Type="int" />
+          <Property Name="WAREHOUSECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ZONECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="LOCATIONCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMNAME" Type="nvarchar" MaxLength="50" />
+          <Property Name="LOCALQTY" Type="int" />
+          <Property Name="CHECKQTY" Type="int" />
+          <Property Name="DIFFQTY" Type="int" />
+          <Property Name="COUNTSTATION" Type="int" />
+          <Property Name="NEWLOCATIONCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="BARCODE" Type="nvarchar" MaxLength="200" />
+          <Property Name="SN" Type="nvarchar" MaxLength="200" />
+          <Property Name="FINISHTIME" Type="datetime" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="CREATOR" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_COUNTHEAD">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="SOURCEORDER" Type="nvarchar" MaxLength="50" />
+          <Property Name="COUNTTYPE" Type="int" />
+          <Property Name="WAREHOUSECODE" Type="int" />
+          <Property Name="COUNTSTATION" Type="int" />
+          <Property Name="STARTTIME" Type="datetime" />
+          <Property Name="COUNTPEOPLE" Type="nvarchar" MaxLength="50" />
+          <Property Name="COUNTFLAG" Type="bit" />
+          <Property Name="CHECKTIME" Type="datetime" />
+          <Property Name="FINISHTIME" Type="datetime" />
+          <Property Name="REMARK" Type="nvarchar" MaxLength="200" />
+          <Property Name="CRTEATETIME" Type="datetime" />
+          <Property Name="CREATOR" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_DETALI">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="BILLBODYID" Type="int" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="QTY" Type="int" />
+          <Property Name="PACKQTY" Type="int" />
+          <Property Name="FINISHQTY" Type="int" />
+          <Property Name="FINISHPACKQTY" Type="int" />
+          <Property Name="STATION" Type="int" />
+          <Property Name="SNNO" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_HEAD">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMTYPE" Type="int" />
+          <Property Name="ITEMSTATION" Type="int" />
+          <Property Name="SOURCE" Type="int" />
+          <Property Name="CREATOR" Type="nvarchar" MaxLength="50" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="REMARK" Type="nvarchar" MaxLength="200" />
+          <Property Name="SUPPLIERCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CUSTOMERCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="OPERATOR" Type="nvarchar" MaxLength="50" />
+          <Property Name="OPERATTIME" Type="datetime" />
+          <Property Name="APPROVOR" Type="nvarchar" MaxLength="50" />
+          <Property Name="APPROVETIME" Type="datetime" />
+        </EntityType>
+        <!--生成过程中发现错误:
+警告 6002: 表/视图“TRWCS.dbo.WMS_BILL_HEIGH”未定义主键。已推断出该键，并将定义创建为只读的表/视图。-->
+        <EntityType Name="WMS_BILL_HEIGH">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="SOURCEORDER" Type="nvarchar" MaxLength="50" />
+          <Property Name="SOURCETYPE" Type="int" />
+          <Property Name="ZONECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CONTAINERCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="CREATOR" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMNAME" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="THEORETICALHEIGHT" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="ACTUALHEIGHT" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="REMARK" Type="nvarchar" MaxLength="200" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_PUTINBODY">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="PUTINHEADID" Type="int" />
+          <Property Name="BARCODE" Type="nvarchar" MaxLength="200" />
+          <Property Name="ITEMNAME" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="SN" Type="nvarchar" MaxLength="200" />
+          <Property Name="QTY" Type="int" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_PUTINHEAD">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="SOURCEORDER" Type="nvarchar" MaxLength="50" />
+          <Property Name="SOURCETYPE" Type="int" />
+          <Property Name="PUTINFLAG" Type="bit" />
+          <Property Name="FINISHPUTINFLAG" Type="bit" />
+          <Property Name="ZONECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CONTAINERCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="TUNNEL" Type="int" />
+          <Property Name="LOCATIONCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="FINISHPUTINTIME" Type="datetime" />
+          <Property Name="IFUSE" Type="bit" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="CREATOR" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_TYPE">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="BILLCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="BILLNAME" Type="nvarchar" MaxLength="50" />
+          <Property Name="BILLTYPE" Type="int" />
+          <Property Name="BOOKTYPE" Type="int" />
+          <Property Name="BOOKDATA" Type="nvarchar" MaxLength="200" />
+          <Property Name="IFAPPROVE" Type="bit" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_WEIGH">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="SOURCEORDER" Type="nvarchar" MaxLength="50" />
+          <Property Name="SOURCETYPE" Type="int" />
+          <Property Name="ZONECODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CONTAINERCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="CREATOR" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMNAME" Type="nvarchar" MaxLength="50" />
+          <Property Name="ITEMCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="THEORETICALWEIGH" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="ACTUALWEIGH" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="REMARK" Type="nvarchar" MaxLength="200" />
+        </EntityType>
+        <EntityType Name="WMS_BOOKING_TASK">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="BILLHEADID" Type="nvarchar" MaxLength="50" />
+          <Property Name="BILLBODYID" Type="nvarchar" MaxLength="50" />
+          <Property Name="IFSUCESS" Type="bit" />
+          <Property Name="BOOKTIMES" Type="int" />
+          <Property Name="BOOKTIME" Type="datetime" />
+        </EntityType>
+        <EntityType Name="WMS_CONTAINER">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="CONTAINERCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CONTAINERSPECS" Type="nvarchar" MaxLength="50" />
+          <Property Name="CONTAINERTYPE" Type="int" />
+          <Property Name="CONTAINERCZ" Type="nvarchar" MaxLength="50" />
+          <Property Name="EXPIRYTIME" Type="int" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="IFUSE" Type="bit" />
+          <Property Name="CODETYPE" Type="int" />
+          <Property Name="ZONECODE" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="WMS_OPERATINGLOG">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="OPERATOR" Type="nvarchar" MaxLength="50" />
+          <Property Name="OPERATETYPE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CONTENT" Type="nvarchar" MaxLength="1000" />
+          <Property Name="OPERATETIME" Type="datetime" />
+        </EntityType>
+        <EntityType Name="WMS_SUPPLIER_CUSTOMER">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="CODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" />
+          <Property Name="TYPE" Type="nvarchar" MaxLength="50" />
+          <Property Name="ADDRESS" Type="nvarchar" MaxLength="200" />
+          <Property Name="PHONE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CONTACTOR" Type="nvarchar" MaxLength="50" />
+          <Property Name="EMAIL" Type="nvarchar" MaxLength="100" />
+        </EntityType>
+        <EntityType Name="WMS_TASK_STOCKER">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="TASKCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="TASKTYPE" Type="int" />
+          <Property Name="TASKSTATION" Type="int" />
+          <Property Name="STARTTAXI" Type="nvarchar" MaxLength="50" />
+          <Property Name="ENDTAXI" Type="nvarchar" MaxLength="50" />
+          <Property Name="TASKLEAVEL" Type="int" />
+          <Property Name="BILLDETAILCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="BILLBODYCODY" Type="nvarchar" MaxLength="50" />
+          <Property Name="CONTAINERCODE" Type="nvarchar" MaxLength="50" />
+          <Property Name="CREATETIME" Type="datetime" />
+          <Property Name="STARTTIME" Type="datetime" />
+          <Property Name="DOTIME" Type="datetime" />
+          <Property Name="FINISHTIME" Type="datetime" />
+        </EntityType>
+        <EntityContainer Name="TRWCSModelStoreContainer">
+          <EntitySet Name="sys_Groups" EntityType="Self.sys_Groups" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="sys_Permissions" EntityType="Self.sys_Permissions" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="sys_Roles" EntityType="Self.sys_Roles" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="sys_Users" EntityType="Self.sys_Users" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BAS_CODESET" EntityType="Self.WMS_BAS_CODESET" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BAS_DEVICE" EntityType="Self.WMS_BAS_DEVICE" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BAS_LOCATION" EntityType="Self.WMS_BAS_LOCATION" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BAS_MASTER" EntityType="Self.WMS_BAS_MASTER" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BAS_ReplenishSet" EntityType="Self.WMS_BAS_ReplenishSet" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_BODY" EntityType="Self.WMS_BILL_BODY" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_COUNTBODY" EntityType="Self.WMS_BILL_COUNTBODY" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_COUNTHEAD" EntityType="Self.WMS_BILL_COUNTHEAD" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_DETALI" EntityType="Self.WMS_BILL_DETALI" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_HEAD" EntityType="Self.WMS_BILL_HEAD" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_PUTINBODY" EntityType="Self.WMS_BILL_PUTINBODY" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_PUTINHEAD" EntityType="Self.WMS_BILL_PUTINHEAD" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_TYPE" EntityType="Self.WMS_BILL_TYPE" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BILL_WEIGH" EntityType="Self.WMS_BILL_WEIGH" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_BOOKING_TASK" EntityType="Self.WMS_BOOKING_TASK" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_CONTAINER" EntityType="Self.WMS_CONTAINER" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_OPERATINGLOG" EntityType="Self.WMS_OPERATINGLOG" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_SUPPLIER_CUSTOMER" EntityType="Self.WMS_SUPPLIER_CUSTOMER" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="WMS_TASK_STOCKER" EntityType="Self.WMS_TASK_STOCKER" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="sys_RolePermission" EntityType="Self.sys_RolePermission" store:Type="Tables" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [sys_RolePermission].[Id] AS [Id], 
+    [sys_RolePermission].[RoleId] AS [RoleId], 
+    [sys_RolePermission].[PermissionId] AS [PermissionId], 
+    [sys_RolePermission].[CreateTime] AS [CreateTime], 
+    [sys_RolePermission].[CreateOperator] AS [CreateOperator]
+    FROM [dbo].[sys_RolePermission] AS [sys_RolePermission]</DefiningQuery>
+          </EntitySet>
+          <EntitySet Name="sys_UserRole" EntityType="Self.sys_UserRole" store:Type="Tables" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [sys_UserRole].[Id] AS [Id], 
+    [sys_UserRole].[UserId] AS [UserId], 
+    [sys_UserRole].[RoleId] AS [RoleId], 
+    [sys_UserRole].[CreateTime] AS [CreateTime], 
+    [sys_UserRole].[CreateOperator] AS [CreateOperator]
+    FROM [dbo].[sys_UserRole] AS [sys_UserRole]</DefiningQuery>
+          </EntitySet>
+          <EntitySet Name="WMS_BILL_HEIGH" EntityType="Self.WMS_BILL_HEIGH" store:Type="Tables" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [WMS_BILL_HEIGH].[ID] AS [ID], 
+    [WMS_BILL_HEIGH].[SOURCEORDER] AS [SOURCEORDER], 
+    [WMS_BILL_HEIGH].[SOURCETYPE] AS [SOURCETYPE], 
+    [WMS_BILL_HEIGH].[ZONECODE] AS [ZONECODE], 
+    [WMS_BILL_HEIGH].[CONTAINERCODE] AS [CONTAINERCODE], 
+    [WMS_BILL_HEIGH].[CREATETIME] AS [CREATETIME], 
+    [WMS_BILL_HEIGH].[CREATOR] AS [CREATOR], 
+    [WMS_BILL_HEIGH].[ITEMNAME] AS [ITEMNAME], 
+    [WMS_BILL_HEIGH].[ITEMCODE] AS [ITEMCODE], 
+    [WMS_BILL_HEIGH].[THEORETICALHEIGHT] AS [THEORETICALHEIGHT], 
+    [WMS_BILL_HEIGH].[ACTUALHEIGHT] AS [ACTUALHEIGHT], 
+    [WMS_BILL_HEIGH].[REMARK] AS [REMARK]
+    FROM [dbo].[WMS_BILL_HEIGH] AS [WMS_BILL_HEIGH]</DefiningQuery>
+          </EntitySet>
+        </EntityContainer>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="TRWCSModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="sys_Groups">
+          <Key>
+            <PropertyRef Name="GroupName" />
+            <PropertyRef Name="ParentGroupId" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="GroupName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="ParentGroupId" Type="Int32" Nullable="false" />
+          <Property Name="IsEnabled" Type="Boolean" />
+          <Property Name="Describe" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="CreateTime" Type="DateTime" Precision="3" />
+          <Property Name="CreateOperator" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="UpdateTime" Type="DateTime" Precision="3" />
+          <Property Name="UpdateOperator" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="State" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+        </EntityType>
+        <EntityType Name="sys_Permissions">
+          <Key>
+            <PropertyRef Name="Id" />
+            <PropertyRef Name="NodeName" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="NodeName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="IsEnabled" Type="Boolean" />
+          <Property Name="ImageUrl" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Icon" Type="String" MaxLength="20" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Type" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="LinkUrl" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ControllerName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ActionName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="KeyName" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="ParentId" Type="Int32" />
+          <Property Name="SortNo" Type="Int32" />
+          <Property Name="CreateTime" Type="DateTime" Precision="3" />
+          <Property Name="CreateOperator" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UpdateTime" Type="DateTime" Precision="3" />
+          <Property Name="UpdateOperator" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="State" Type="String" MaxLength="10" FixedLength="false" Unicode="false" />
+        </EntityType>
+        <EntityType Name="sys_Roles">
+          <Key>
+            <PropertyRef Name="RoleName" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="RoleName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="IsEnabled" Type="Boolean" />
+          <Property Name="Describe" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="RoleLevel" Type="Int32" />
+          <Property Name="CreateTime" Type="DateTime" Precision="3" />
+          <Property Name="CreateOperator" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UpdateTime" Type="DateTime" Precision="3" />
+          <Property Name="UpdateOperator" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="sys_Users">
+          <Key>
+            <PropertyRef Name="UserName" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Password" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="TrueName" Type="String" MaxLength="10" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="UserGroupId" Type="Int32" Nullable="false" />
+          <Property Name="Mobile" Type="String" MaxLength="11" FixedLength="false" Unicode="true" />
+          <Property Name="Email" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CreateTime" Type="DateTime" Precision="3" />
+          <Property Name="CreateOperator" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="UpdateTime" Type="DateTime" Precision="3" />
+          <Property Name="UpdateOperator" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_CODESET">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="CODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="KEY" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="REMARK" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="CREATEOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CREATETIIME" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_DEVICE">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="DEVICECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="DEVICETYPE" Type="Int32" />
+          <Property Name="DEVICEPROPERTY" Type="Int32" />
+          <Property Name="DEVICESTATION" Type="Int32" />
+          <Property Name="ERRORCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ZONECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="IP" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_LOCATION">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="FACTORYCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="WAREHOUSECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ZONEID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ZONECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ROW" Type="Int32" />
+          <Property Name="RANK" Type="Int32" />
+          <Property Name="TIER" Type="Int32" />
+          <Property Name="TUNNEL" Type="Int32" />
+          <Property Name="SORTTYPE" Type="Int32" />
+          <Property Name="EXITOROUT" Type="Int32" />
+          <Property Name="LOCATIONTYPE" Type="Int32" />
+          <Property Name="INSTOCK" Type="Int32" />
+          <Property Name="LOCATIONSTATION" Type="Int32" />
+          <Property Name="IFUNUSE" Type="Boolean" />
+          <Property Name="CURRENTCONTAINER" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="XYZ" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CHECKXYZ" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SPECS" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="IFMIXING" Type="Boolean" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_MASTER">
+          <Key>
+            <PropertyRef Name="id" />
+          </Key>
+          <Property Name="id" Type="Int32" Nullable="false" />
+          <Property Name="FACTORYCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMNAME" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMPEC" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="STORAGETIME" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="UNUSETIME" Type="DateTime" Precision="3" />
+          <Property Name="MINSTOCK" Type="Int32" />
+          <Property Name="MAXSTOCK" Type="Int32" />
+          <Property Name="IFUSE" Type="Int32" />
+          <Property Name="IFBINDMUL" Type="Int32" />
+          <Property Name="BATCH" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="Entrance" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="OUTERMODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="STORAGEAREAS" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="PICKPOSITION" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="THRESHOLD" Type="Int32" />
+          <Property Name="PRIORITYLEVEL" Type="Int32" />
+          <Property Name="ITEMTYPE" Type="Int32" />
+        </EntityType>
+        <EntityType Name="WMS_BAS_ReplenishSet">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="SOURCEFACTORY" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SOURCEWAREHOUSE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TARGETWAREHOUSE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TARGETZONE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TARGETLOCATION" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ENABLEFLAG" Type="Boolean" />
+          <Property Name="MAXSTORAGE" Type="Int32" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="CREATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_BODY">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="BILLID" Type="Int32" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="QTY" Type="Int32" />
+          <Property Name="PACKQTY" Type="Int32" />
+          <Property Name="FINISHQTY" Type="Int32" />
+          <Property Name="FINISHPACKQTY" Type="Int32" />
+          <Property Name="STATION" Type="Int32" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_COUNTBODY">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="HEADERID" Type="Int32" />
+          <Property Name="WAREHOUSECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ZONECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="LOCATIONCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="LOCALQTY" Type="Int32" />
+          <Property Name="CHECKQTY" Type="Int32" />
+          <Property Name="DIFFQTY" Type="Int32" />
+          <Property Name="COUNTSTATION" Type="Int32" />
+          <Property Name="NEWLOCATIONCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="BARCODE" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="SN" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="FINISHTIME" Type="DateTime" Precision="3" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="CREATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_COUNTHEAD">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="SOURCEORDER" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="COUNTTYPE" Type="Int32" />
+          <Property Name="WAREHOUSECODE" Type="Int32" />
+          <Property Name="COUNTSTATION" Type="Int32" />
+          <Property Name="STARTTIME" Type="DateTime" Precision="3" />
+          <Property Name="COUNTPEOPLE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="COUNTFLAG" Type="Boolean" />
+          <Property Name="CHECKTIME" Type="DateTime" Precision="3" />
+          <Property Name="FINISHTIME" Type="DateTime" Precision="3" />
+          <Property Name="REMARK" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="CRTEATETIME" Type="DateTime" Precision="3" />
+          <Property Name="CREATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_DETALI">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="BILLBODYID" Type="Int32" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="QTY" Type="Int32" />
+          <Property Name="PACKQTY" Type="Int32" />
+          <Property Name="FINISHQTY" Type="Int32" />
+          <Property Name="FINISHPACKQTY" Type="Int32" />
+          <Property Name="STATION" Type="Int32" />
+          <Property Name="SNNO" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_HEAD">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMTYPE" Type="Int32" />
+          <Property Name="ITEMSTATION" Type="Int32" />
+          <Property Name="SOURCE" Type="Int32" />
+          <Property Name="CREATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="REMARK" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="SUPPLIERCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CUSTOMERCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="OPERATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="OPERATTIME" Type="DateTime" Precision="3" />
+          <Property Name="APPROVOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="APPROVETIME" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_PUTINBODY">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="PUTINHEADID" Type="Int32" />
+          <Property Name="BARCODE" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SN" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="QTY" Type="Int32" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_PUTINHEAD">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="SOURCEORDER" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SOURCETYPE" Type="Int32" />
+          <Property Name="PUTINFLAG" Type="Boolean" />
+          <Property Name="FINISHPUTINFLAG" Type="Boolean" />
+          <Property Name="ZONECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CONTAINERCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TUNNEL" Type="Int32" />
+          <Property Name="LOCATIONCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="FINISHPUTINTIME" Type="DateTime" Precision="3" />
+          <Property Name="IFUSE" Type="Boolean" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="CREATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_TYPE">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="BILLCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="BILLNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="BILLTYPE" Type="Int32" />
+          <Property Name="BOOKTYPE" Type="Int32" />
+          <Property Name="BOOKDATA" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="IFAPPROVE" Type="Boolean" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_WEIGH">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="SOURCEORDER" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SOURCETYPE" Type="Int32" />
+          <Property Name="ZONECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CONTAINERCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="CREATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="THEORETICALWEIGH" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="ACTUALWEIGH" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="REMARK" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BOOKING_TASK">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="BILLHEADID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="BILLBODYID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="IFSUCESS" Type="Boolean" />
+          <Property Name="BOOKTIMES" Type="Int32" />
+          <Property Name="BOOKTIME" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="WMS_CONTAINER">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="CONTAINERCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CONTAINERSPECS" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CONTAINERTYPE" Type="Int32" />
+          <Property Name="CONTAINERCZ" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="EXPIRYTIME" Type="Int32" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="IFUSE" Type="Boolean" />
+          <Property Name="CODETYPE" Type="Int32" />
+          <Property Name="ZONECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_OPERATINGLOG">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="OPERATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="OPERATETYPE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CONTENT" Type="String" MaxLength="1000" FixedLength="false" Unicode="true" />
+          <Property Name="OPERATETIME" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="WMS_SUPPLIER_CUSTOMER">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="CODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TYPE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ADDRESS" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="PHONE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CONTACTOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="EMAIL" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_TASK_STOCKER">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="TASKCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TASKTYPE" Type="Int32" />
+          <Property Name="TASKSTATION" Type="Int32" />
+          <Property Name="STARTTAXI" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ENDTAXI" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TASKLEAVEL" Type="Int32" />
+          <Property Name="BILLDETAILCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="BILLBODYCODY" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CONTAINERCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="STARTTIME" Type="DateTime" Precision="3" />
+          <Property Name="DOTIME" Type="DateTime" Precision="3" />
+          <Property Name="FINISHTIME" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="sys_RolePermission">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="RoleId" Type="Int32" />
+          <Property Name="PermissionId" Type="Int32" />
+          <Property Name="CreateTime" Type="DateTime" Precision="3" />
+          <Property Name="CreateOperator" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="sys_UserRole">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserId" Type="Int32" />
+          <Property Name="RoleId" Type="Int32" />
+          <Property Name="CreateTime" Type="DateTime" Precision="3" />
+          <Property Name="CreateOperator" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="WMS_BILL_HEIGH">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="SOURCEORDER" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SOURCETYPE" Type="Int32" />
+          <Property Name="ZONECODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CONTAINERCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CREATETIME" Type="DateTime" Precision="3" />
+          <Property Name="CREATOR" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ITEMCODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="THEORETICALHEIGHT" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="ACTUALHEIGHT" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="REMARK" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityContainer Name="TRWCSEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="sys_Groups" EntityType="Self.sys_Groups" />
+          <EntitySet Name="sys_Permissions" EntityType="Self.sys_Permissions" />
+          <EntitySet Name="sys_Roles" EntityType="Self.sys_Roles" />
+          <EntitySet Name="sys_Users" EntityType="Self.sys_Users" />
+          <EntitySet Name="WMS_BAS_CODESET" EntityType="Self.WMS_BAS_CODESET" />
+          <EntitySet Name="WMS_BAS_DEVICE" EntityType="Self.WMS_BAS_DEVICE" />
+          <EntitySet Name="WMS_BAS_LOCATION" EntityType="Self.WMS_BAS_LOCATION" />
+          <EntitySet Name="WMS_BAS_MASTER" EntityType="Self.WMS_BAS_MASTER" />
+          <EntitySet Name="WMS_BAS_ReplenishSet" EntityType="Self.WMS_BAS_ReplenishSet" />
+          <EntitySet Name="WMS_BILL_BODY" EntityType="Self.WMS_BILL_BODY" />
+          <EntitySet Name="WMS_BILL_COUNTBODY" EntityType="Self.WMS_BILL_COUNTBODY" />
+          <EntitySet Name="WMS_BILL_COUNTHEAD" EntityType="Self.WMS_BILL_COUNTHEAD" />
+          <EntitySet Name="WMS_BILL_DETALI" EntityType="Self.WMS_BILL_DETALI" />
+          <EntitySet Name="WMS_BILL_HEAD" EntityType="Self.WMS_BILL_HEAD" />
+          <EntitySet Name="WMS_BILL_PUTINBODY" EntityType="Self.WMS_BILL_PUTINBODY" />
+          <EntitySet Name="WMS_BILL_PUTINHEAD" EntityType="Self.WMS_BILL_PUTINHEAD" />
+          <EntitySet Name="WMS_BILL_TYPE" EntityType="Self.WMS_BILL_TYPE" />
+          <EntitySet Name="WMS_BILL_WEIGH" EntityType="Self.WMS_BILL_WEIGH" />
+          <EntitySet Name="WMS_BOOKING_TASK" EntityType="Self.WMS_BOOKING_TASK" />
+          <EntitySet Name="WMS_CONTAINER" EntityType="Self.WMS_CONTAINER" />
+          <EntitySet Name="WMS_OPERATINGLOG" EntityType="Self.WMS_OPERATINGLOG" />
+          <EntitySet Name="WMS_SUPPLIER_CUSTOMER" EntityType="Self.WMS_SUPPLIER_CUSTOMER" />
+          <EntitySet Name="WMS_TASK_STOCKER" EntityType="Self.WMS_TASK_STOCKER" />
+          <EntitySet Name="sys_RolePermission" EntityType="Self.sys_RolePermission" />
+          <EntitySet Name="sys_UserRole" EntityType="Self.sys_UserRole" />
+          <EntitySet Name="WMS_BILL_HEIGH" EntityType="Self.WMS_BILL_HEIGH" />
+        </EntityContainer>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="TRWCSModelStoreContainer" CdmEntityContainer="TRWCSEntities">
+          <EntitySetMapping Name="sys_Groups">
+            <EntityTypeMapping TypeName="TRWCSModel.sys_Groups">
+              <MappingFragment StoreEntitySet="sys_Groups">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="GroupName" ColumnName="GroupName" />
+                <ScalarProperty Name="ParentGroupId" ColumnName="ParentGroupId" />
+                <ScalarProperty Name="IsEnabled" ColumnName="IsEnabled" />
+                <ScalarProperty Name="Describe" ColumnName="Describe" />
+                <ScalarProperty Name="CreateTime" ColumnName="CreateTime" />
+                <ScalarProperty Name="CreateOperator" ColumnName="CreateOperator" />
+                <ScalarProperty Name="UpdateTime" ColumnName="UpdateTime" />
+                <ScalarProperty Name="UpdateOperator" ColumnName="UpdateOperator" />
+                <ScalarProperty Name="State" ColumnName="State" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="sys_Permissions">
+            <EntityTypeMapping TypeName="TRWCSModel.sys_Permissions">
+              <MappingFragment StoreEntitySet="sys_Permissions">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="NodeName" ColumnName="NodeName" />
+                <ScalarProperty Name="IsEnabled" ColumnName="IsEnabled" />
+                <ScalarProperty Name="ImageUrl" ColumnName="ImageUrl" />
+                <ScalarProperty Name="Icon" ColumnName="Icon" />
+                <ScalarProperty Name="Type" ColumnName="Type" />
+                <ScalarProperty Name="LinkUrl" ColumnName="LinkUrl" />
+                <ScalarProperty Name="ControllerName" ColumnName="ControllerName" />
+                <ScalarProperty Name="ActionName" ColumnName="ActionName" />
+                <ScalarProperty Name="KeyName" ColumnName="KeyName" />
+                <ScalarProperty Name="ParentId" ColumnName="ParentId" />
+                <ScalarProperty Name="SortNo" ColumnName="SortNo" />
+                <ScalarProperty Name="CreateTime" ColumnName="CreateTime" />
+                <ScalarProperty Name="CreateOperator" ColumnName="CreateOperator" />
+                <ScalarProperty Name="UpdateTime" ColumnName="UpdateTime" />
+                <ScalarProperty Name="UpdateOperator" ColumnName="UpdateOperator" />
+                <ScalarProperty Name="State" ColumnName="State" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="sys_Roles">
+            <EntityTypeMapping TypeName="TRWCSModel.sys_Roles">
+              <MappingFragment StoreEntitySet="sys_Roles">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="RoleName" ColumnName="RoleName" />
+                <ScalarProperty Name="IsEnabled" ColumnName="IsEnabled" />
+                <ScalarProperty Name="Describe" ColumnName="Describe" />
+                <ScalarProperty Name="RoleLevel" ColumnName="RoleLevel" />
+                <ScalarProperty Name="CreateTime" ColumnName="CreateTime" />
+                <ScalarProperty Name="CreateOperator" ColumnName="CreateOperator" />
+                <ScalarProperty Name="UpdateTime" ColumnName="UpdateTime" />
+                <ScalarProperty Name="UpdateOperator" ColumnName="UpdateOperator" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="sys_Users">
+            <EntityTypeMapping TypeName="TRWCSModel.sys_Users">
+              <MappingFragment StoreEntitySet="sys_Users">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="UserName" ColumnName="UserName" />
+                <ScalarProperty Name="Password" ColumnName="Password" />
+                <ScalarProperty Name="TrueName" ColumnName="TrueName" />
+                <ScalarProperty Name="UserGroupId" ColumnName="UserGroupId" />
+                <ScalarProperty Name="Mobile" ColumnName="Mobile" />
+                <ScalarProperty Name="Email" ColumnName="Email" />
+                <ScalarProperty Name="CreateTime" ColumnName="CreateTime" />
+                <ScalarProperty Name="CreateOperator" ColumnName="CreateOperator" />
+                <ScalarProperty Name="UpdateTime" ColumnName="UpdateTime" />
+                <ScalarProperty Name="UpdateOperator" ColumnName="UpdateOperator" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BAS_CODESET">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BAS_CODESET">
+              <MappingFragment StoreEntitySet="WMS_BAS_CODESET">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="CODE" ColumnName="CODE" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+                <ScalarProperty Name="KEY" ColumnName="KEY" />
+                <ScalarProperty Name="REMARK" ColumnName="REMARK" />
+                <ScalarProperty Name="CREATEOR" ColumnName="CREATEOR" />
+                <ScalarProperty Name="CREATETIIME" ColumnName="CREATETIIME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BAS_DEVICE">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BAS_DEVICE">
+              <MappingFragment StoreEntitySet="WMS_BAS_DEVICE">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="DEVICECODE" ColumnName="DEVICECODE" />
+                <ScalarProperty Name="DEVICETYPE" ColumnName="DEVICETYPE" />
+                <ScalarProperty Name="DEVICEPROPERTY" ColumnName="DEVICEPROPERTY" />
+                <ScalarProperty Name="DEVICESTATION" ColumnName="DEVICESTATION" />
+                <ScalarProperty Name="ERRORCODE" ColumnName="ERRORCODE" />
+                <ScalarProperty Name="ZONECODE" ColumnName="ZONECODE" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="IP" ColumnName="IP" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BAS_LOCATION">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BAS_LOCATION">
+              <MappingFragment StoreEntitySet="WMS_BAS_LOCATION">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="FACTORYCODE" ColumnName="FACTORYCODE" />
+                <ScalarProperty Name="WAREHOUSECODE" ColumnName="WAREHOUSECODE" />
+                <ScalarProperty Name="ZONEID" ColumnName="ZONEID" />
+                <ScalarProperty Name="ZONECODE" ColumnName="ZONECODE" />
+                <ScalarProperty Name="ROW" ColumnName="ROW" />
+                <ScalarProperty Name="RANK" ColumnName="RANK" />
+                <ScalarProperty Name="TIER" ColumnName="TIER" />
+                <ScalarProperty Name="TUNNEL" ColumnName="TUNNEL" />
+                <ScalarProperty Name="SORTTYPE" ColumnName="SORTTYPE" />
+                <ScalarProperty Name="EXITOROUT" ColumnName="EXITOROUT" />
+                <ScalarProperty Name="LOCATIONTYPE" ColumnName="LOCATIONTYPE" />
+                <ScalarProperty Name="INSTOCK" ColumnName="INSTOCK" />
+                <ScalarProperty Name="LOCATIONSTATION" ColumnName="LOCATIONSTATION" />
+                <ScalarProperty Name="IFUNUSE" ColumnName="IFUNUSE" />
+                <ScalarProperty Name="CURRENTCONTAINER" ColumnName="CURRENTCONTAINER" />
+                <ScalarProperty Name="XYZ" ColumnName="XYZ" />
+                <ScalarProperty Name="CHECKXYZ" ColumnName="CHECKXYZ" />
+                <ScalarProperty Name="SPECS" ColumnName="SPECS" />
+                <ScalarProperty Name="IFMIXING" ColumnName="IFMIXING" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BAS_MASTER">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BAS_MASTER">
+              <MappingFragment StoreEntitySet="WMS_BAS_MASTER">
+                <ScalarProperty Name="id" ColumnName="id" />
+                <ScalarProperty Name="FACTORYCODE" ColumnName="FACTORYCODE" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="ITEMNAME" ColumnName="ITEMNAME" />
+                <ScalarProperty Name="ITEMPEC" ColumnName="ITEMPEC" />
+                <ScalarProperty Name="STORAGETIME" ColumnName="STORAGETIME" />
+                <ScalarProperty Name="UNUSETIME" ColumnName="UNUSETIME" />
+                <ScalarProperty Name="MINSTOCK" ColumnName="MINSTOCK" />
+                <ScalarProperty Name="MAXSTOCK" ColumnName="MAXSTOCK" />
+                <ScalarProperty Name="IFUSE" ColumnName="IFUSE" />
+                <ScalarProperty Name="IFBINDMUL" ColumnName="IFBINDMUL" />
+                <ScalarProperty Name="BATCH" ColumnName="BATCH" />
+                <ScalarProperty Name="Entrance" ColumnName="Entrance" />
+                <ScalarProperty Name="OUTERMODE" ColumnName="OUTERMODE" />
+                <ScalarProperty Name="STORAGEAREAS" ColumnName="STORAGEAREAS" />
+                <ScalarProperty Name="PICKPOSITION" ColumnName="PICKPOSITION" />
+                <ScalarProperty Name="THRESHOLD" ColumnName="THRESHOLD" />
+                <ScalarProperty Name="PRIORITYLEVEL" ColumnName="PRIORITYLEVEL" />
+                <ScalarProperty Name="ITEMTYPE" ColumnName="ITEMTYPE" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BAS_ReplenishSet">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BAS_ReplenishSet">
+              <MappingFragment StoreEntitySet="WMS_BAS_ReplenishSet">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="SOURCEFACTORY" ColumnName="SOURCEFACTORY" />
+                <ScalarProperty Name="SOURCEWAREHOUSE" ColumnName="SOURCEWAREHOUSE" />
+                <ScalarProperty Name="TARGETWAREHOUSE" ColumnName="TARGETWAREHOUSE" />
+                <ScalarProperty Name="TARGETZONE" ColumnName="TARGETZONE" />
+                <ScalarProperty Name="TARGETLOCATION" ColumnName="TARGETLOCATION" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="ITEMNAME" ColumnName="ITEMNAME" />
+                <ScalarProperty Name="ENABLEFLAG" ColumnName="ENABLEFLAG" />
+                <ScalarProperty Name="MAXSTORAGE" ColumnName="MAXSTORAGE" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="CREATOR" ColumnName="CREATOR" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_BODY">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_BODY">
+              <MappingFragment StoreEntitySet="WMS_BILL_BODY">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="BILLID" ColumnName="BILLID" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="QTY" ColumnName="QTY" />
+                <ScalarProperty Name="PACKQTY" ColumnName="PACKQTY" />
+                <ScalarProperty Name="FINISHQTY" ColumnName="FINISHQTY" />
+                <ScalarProperty Name="FINISHPACKQTY" ColumnName="FINISHPACKQTY" />
+                <ScalarProperty Name="STATION" ColumnName="STATION" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_COUNTBODY">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_COUNTBODY">
+              <MappingFragment StoreEntitySet="WMS_BILL_COUNTBODY">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="HEADERID" ColumnName="HEADERID" />
+                <ScalarProperty Name="WAREHOUSECODE" ColumnName="WAREHOUSECODE" />
+                <ScalarProperty Name="ZONECODE" ColumnName="ZONECODE" />
+                <ScalarProperty Name="LOCATIONCODE" ColumnName="LOCATIONCODE" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="ITEMNAME" ColumnName="ITEMNAME" />
+                <ScalarProperty Name="LOCALQTY" ColumnName="LOCALQTY" />
+                <ScalarProperty Name="CHECKQTY" ColumnName="CHECKQTY" />
+                <ScalarProperty Name="DIFFQTY" ColumnName="DIFFQTY" />
+                <ScalarProperty Name="COUNTSTATION" ColumnName="COUNTSTATION" />
+                <ScalarProperty Name="NEWLOCATIONCODE" ColumnName="NEWLOCATIONCODE" />
+                <ScalarProperty Name="BARCODE" ColumnName="BARCODE" />
+                <ScalarProperty Name="SN" ColumnName="SN" />
+                <ScalarProperty Name="FINISHTIME" ColumnName="FINISHTIME" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="CREATOR" ColumnName="CREATOR" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_COUNTHEAD">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_COUNTHEAD">
+              <MappingFragment StoreEntitySet="WMS_BILL_COUNTHEAD">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="SOURCEORDER" ColumnName="SOURCEORDER" />
+                <ScalarProperty Name="COUNTTYPE" ColumnName="COUNTTYPE" />
+                <ScalarProperty Name="WAREHOUSECODE" ColumnName="WAREHOUSECODE" />
+                <ScalarProperty Name="COUNTSTATION" ColumnName="COUNTSTATION" />
+                <ScalarProperty Name="STARTTIME" ColumnName="STARTTIME" />
+                <ScalarProperty Name="COUNTPEOPLE" ColumnName="COUNTPEOPLE" />
+                <ScalarProperty Name="COUNTFLAG" ColumnName="COUNTFLAG" />
+                <ScalarProperty Name="CHECKTIME" ColumnName="CHECKTIME" />
+                <ScalarProperty Name="FINISHTIME" ColumnName="FINISHTIME" />
+                <ScalarProperty Name="REMARK" ColumnName="REMARK" />
+                <ScalarProperty Name="CRTEATETIME" ColumnName="CRTEATETIME" />
+                <ScalarProperty Name="CREATOR" ColumnName="CREATOR" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_DETALI">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_DETALI">
+              <MappingFragment StoreEntitySet="WMS_BILL_DETALI">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="BILLBODYID" ColumnName="BILLBODYID" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="QTY" ColumnName="QTY" />
+                <ScalarProperty Name="PACKQTY" ColumnName="PACKQTY" />
+                <ScalarProperty Name="FINISHQTY" ColumnName="FINISHQTY" />
+                <ScalarProperty Name="FINISHPACKQTY" ColumnName="FINISHPACKQTY" />
+                <ScalarProperty Name="STATION" ColumnName="STATION" />
+                <ScalarProperty Name="SNNO" ColumnName="SNNO" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_HEAD">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_HEAD">
+              <MappingFragment StoreEntitySet="WMS_BILL_HEAD">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="ITEMTYPE" ColumnName="ITEMTYPE" />
+                <ScalarProperty Name="ITEMSTATION" ColumnName="ITEMSTATION" />
+                <ScalarProperty Name="SOURCE" ColumnName="SOURCE" />
+                <ScalarProperty Name="CREATOR" ColumnName="CREATOR" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="REMARK" ColumnName="REMARK" />
+                <ScalarProperty Name="SUPPLIERCODE" ColumnName="SUPPLIERCODE" />
+                <ScalarProperty Name="CUSTOMERCODE" ColumnName="CUSTOMERCODE" />
+                <ScalarProperty Name="OPERATOR" ColumnName="OPERATOR" />
+                <ScalarProperty Name="OPERATTIME" ColumnName="OPERATTIME" />
+                <ScalarProperty Name="APPROVOR" ColumnName="APPROVOR" />
+                <ScalarProperty Name="APPROVETIME" ColumnName="APPROVETIME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_PUTINBODY">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_PUTINBODY">
+              <MappingFragment StoreEntitySet="WMS_BILL_PUTINBODY">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="PUTINHEADID" ColumnName="PUTINHEADID" />
+                <ScalarProperty Name="BARCODE" ColumnName="BARCODE" />
+                <ScalarProperty Name="ITEMNAME" ColumnName="ITEMNAME" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="SN" ColumnName="SN" />
+                <ScalarProperty Name="QTY" ColumnName="QTY" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_PUTINHEAD">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_PUTINHEAD">
+              <MappingFragment StoreEntitySet="WMS_BILL_PUTINHEAD">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="SOURCEORDER" ColumnName="SOURCEORDER" />
+                <ScalarProperty Name="SOURCETYPE" ColumnName="SOURCETYPE" />
+                <ScalarProperty Name="PUTINFLAG" ColumnName="PUTINFLAG" />
+                <ScalarProperty Name="FINISHPUTINFLAG" ColumnName="FINISHPUTINFLAG" />
+                <ScalarProperty Name="ZONECODE" ColumnName="ZONECODE" />
+                <ScalarProperty Name="CONTAINERCODE" ColumnName="CONTAINERCODE" />
+                <ScalarProperty Name="TUNNEL" ColumnName="TUNNEL" />
+                <ScalarProperty Name="LOCATIONCODE" ColumnName="LOCATIONCODE" />
+                <ScalarProperty Name="FINISHPUTINTIME" ColumnName="FINISHPUTINTIME" />
+                <ScalarProperty Name="IFUSE" ColumnName="IFUSE" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="CREATOR" ColumnName="CREATOR" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_TYPE">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_TYPE">
+              <MappingFragment StoreEntitySet="WMS_BILL_TYPE">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="BILLCODE" ColumnName="BILLCODE" />
+                <ScalarProperty Name="BILLNAME" ColumnName="BILLNAME" />
+                <ScalarProperty Name="BILLTYPE" ColumnName="BILLTYPE" />
+                <ScalarProperty Name="BOOKTYPE" ColumnName="BOOKTYPE" />
+                <ScalarProperty Name="BOOKDATA" ColumnName="BOOKDATA" />
+                <ScalarProperty Name="IFAPPROVE" ColumnName="IFAPPROVE" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_WEIGH">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_WEIGH">
+              <MappingFragment StoreEntitySet="WMS_BILL_WEIGH">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="SOURCEORDER" ColumnName="SOURCEORDER" />
+                <ScalarProperty Name="SOURCETYPE" ColumnName="SOURCETYPE" />
+                <ScalarProperty Name="ZONECODE" ColumnName="ZONECODE" />
+                <ScalarProperty Name="CONTAINERCODE" ColumnName="CONTAINERCODE" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="CREATOR" ColumnName="CREATOR" />
+                <ScalarProperty Name="ITEMNAME" ColumnName="ITEMNAME" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="THEORETICALWEIGH" ColumnName="THEORETICALWEIGH" />
+                <ScalarProperty Name="ACTUALWEIGH" ColumnName="ACTUALWEIGH" />
+                <ScalarProperty Name="REMARK" ColumnName="REMARK" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BOOKING_TASK">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BOOKING_TASK">
+              <MappingFragment StoreEntitySet="WMS_BOOKING_TASK">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="BILLHEADID" ColumnName="BILLHEADID" />
+                <ScalarProperty Name="BILLBODYID" ColumnName="BILLBODYID" />
+                <ScalarProperty Name="IFSUCESS" ColumnName="IFSUCESS" />
+                <ScalarProperty Name="BOOKTIMES" ColumnName="BOOKTIMES" />
+                <ScalarProperty Name="BOOKTIME" ColumnName="BOOKTIME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_CONTAINER">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_CONTAINER">
+              <MappingFragment StoreEntitySet="WMS_CONTAINER">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="CONTAINERCODE" ColumnName="CONTAINERCODE" />
+                <ScalarProperty Name="CONTAINERSPECS" ColumnName="CONTAINERSPECS" />
+                <ScalarProperty Name="CONTAINERTYPE" ColumnName="CONTAINERTYPE" />
+                <ScalarProperty Name="CONTAINERCZ" ColumnName="CONTAINERCZ" />
+                <ScalarProperty Name="EXPIRYTIME" ColumnName="EXPIRYTIME" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="IFUSE" ColumnName="IFUSE" />
+                <ScalarProperty Name="CODETYPE" ColumnName="CODETYPE" />
+                <ScalarProperty Name="ZONECODE" ColumnName="ZONECODE" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_OPERATINGLOG">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_OPERATINGLOG">
+              <MappingFragment StoreEntitySet="WMS_OPERATINGLOG">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="OPERATOR" ColumnName="OPERATOR" />
+                <ScalarProperty Name="OPERATETYPE" ColumnName="OPERATETYPE" />
+                <ScalarProperty Name="CONTENT" ColumnName="CONTENT" />
+                <ScalarProperty Name="OPERATETIME" ColumnName="OPERATETIME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_SUPPLIER_CUSTOMER">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_SUPPLIER_CUSTOMER">
+              <MappingFragment StoreEntitySet="WMS_SUPPLIER_CUSTOMER">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="CODE" ColumnName="CODE" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+                <ScalarProperty Name="TYPE" ColumnName="TYPE" />
+                <ScalarProperty Name="ADDRESS" ColumnName="ADDRESS" />
+                <ScalarProperty Name="PHONE" ColumnName="PHONE" />
+                <ScalarProperty Name="CONTACTOR" ColumnName="CONTACTOR" />
+                <ScalarProperty Name="EMAIL" ColumnName="EMAIL" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_TASK_STOCKER">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_TASK_STOCKER">
+              <MappingFragment StoreEntitySet="WMS_TASK_STOCKER">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="TASKCODE" ColumnName="TASKCODE" />
+                <ScalarProperty Name="TASKTYPE" ColumnName="TASKTYPE" />
+                <ScalarProperty Name="TASKSTATION" ColumnName="TASKSTATION" />
+                <ScalarProperty Name="STARTTAXI" ColumnName="STARTTAXI" />
+                <ScalarProperty Name="ENDTAXI" ColumnName="ENDTAXI" />
+                <ScalarProperty Name="TASKLEAVEL" ColumnName="TASKLEAVEL" />
+                <ScalarProperty Name="BILLDETAILCODE" ColumnName="BILLDETAILCODE" />
+                <ScalarProperty Name="BILLBODYCODY" ColumnName="BILLBODYCODY" />
+                <ScalarProperty Name="CONTAINERCODE" ColumnName="CONTAINERCODE" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="STARTTIME" ColumnName="STARTTIME" />
+                <ScalarProperty Name="DOTIME" ColumnName="DOTIME" />
+                <ScalarProperty Name="FINISHTIME" ColumnName="FINISHTIME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="sys_RolePermission">
+            <EntityTypeMapping TypeName="TRWCSModel.sys_RolePermission">
+              <MappingFragment StoreEntitySet="sys_RolePermission">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="RoleId" ColumnName="RoleId" />
+                <ScalarProperty Name="PermissionId" ColumnName="PermissionId" />
+                <ScalarProperty Name="CreateTime" ColumnName="CreateTime" />
+                <ScalarProperty Name="CreateOperator" ColumnName="CreateOperator" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="sys_UserRole">
+            <EntityTypeMapping TypeName="TRWCSModel.sys_UserRole">
+              <MappingFragment StoreEntitySet="sys_UserRole">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="UserId" ColumnName="UserId" />
+                <ScalarProperty Name="RoleId" ColumnName="RoleId" />
+                <ScalarProperty Name="CreateTime" ColumnName="CreateTime" />
+                <ScalarProperty Name="CreateOperator" ColumnName="CreateOperator" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="WMS_BILL_HEIGH">
+            <EntityTypeMapping TypeName="TRWCSModel.WMS_BILL_HEIGH">
+              <MappingFragment StoreEntitySet="WMS_BILL_HEIGH">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="SOURCEORDER" ColumnName="SOURCEORDER" />
+                <ScalarProperty Name="SOURCETYPE" ColumnName="SOURCETYPE" />
+                <ScalarProperty Name="ZONECODE" ColumnName="ZONECODE" />
+                <ScalarProperty Name="CONTAINERCODE" ColumnName="CONTAINERCODE" />
+                <ScalarProperty Name="CREATETIME" ColumnName="CREATETIME" />
+                <ScalarProperty Name="CREATOR" ColumnName="CREATOR" />
+                <ScalarProperty Name="ITEMNAME" ColumnName="ITEMNAME" />
+                <ScalarProperty Name="ITEMCODE" ColumnName="ITEMCODE" />
+                <ScalarProperty Name="THEORETICALHEIGHT" ColumnName="THEORETICALHEIGHT" />
+                <ScalarProperty Name="ACTUALHEIGHT" ColumnName="ACTUALHEIGHT" />
+                <ScalarProperty Name="REMARK" ColumnName="REMARK" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="false" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="无" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

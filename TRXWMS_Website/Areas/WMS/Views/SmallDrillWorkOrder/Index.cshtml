@@ -1,0 +1,393 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>小钻工单调度</title>
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
+    <link rel="stylesheet" href="~/lib/admin/admin.css">
+    <script src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script src="~/lib/layui/layui.js"></script>
+    <script src="~/lib/admin/admin.js"></script>
+    <script src="~/Scripts/formattodata.js"></script>
+    <style>
+        body { background: #f2f2f2; }
+        .summary-bar { padding: 12px 16px; background: #fff; border-bottom: 1px solid #eee; margin-bottom: 12px; }
+        .tag-current { color: #1E9FFF; font-weight: bold; }
+        .section-title { font-size: 15px; font-weight: bold; margin: 16px 0 8px; padding-left: 8px; border-left: 3px solid #1E9FFF; }
+        .status-active { color: #1E9FFF; }
+        .status-waiting { color: #FFB800; }
+        .status-completed { color: #009688; }
+        .status-abnormal { color: #FF5722; }
+        .spec-row { color: #666; }
+        .spec-indent { display: inline-block; width: 22px; }
+        .wo-row-toggle { cursor: pointer; user-select: none; }
+        .wo-row-toggle .layui-icon { font-size: 14px; margin-right: 4px; color: #666; }
+        .wo-row-collapsed { color: #999; font-size: 12px; margin-left: 6px; }
+        .btn-cancel-spec, .btn-cancel-order, .btn-force-abnormal {
+            margin-left: 4px;
+            background: #FF5722 !important;
+            background-color: #FF5722 !important;
+            border: 1px solid #E64A19 !important;
+            color: #fff !important;
+        }
+        .btn-cancel-spec:hover, .btn-cancel-order:hover, .btn-force-abnormal:hover {
+            background: #E64A19 !important;
+            background-color: #E64A19 !important;
+            border-color: #D84315 !important;
+            color: #fff !important;
+            opacity: 1 !important;
+        }
+        .layui-table .btn-cancel-spec, .layui-table .btn-cancel-order, .layui-table .btn-force-abnormal {
+            background: #FF5722 !important;
+            background-color: #FF5722 !important;
+            border: 1px solid #E64A19 !important;
+            color: #fff !important;
+        }
+    </style>
+</head>
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header"><i class="layui-icon layui-icon-list"></i> 小钻工单调度</div>
+            <div class="layui-card-body">
+                <div class="layui-form toolbar" style="margin-bottom:10px;">
+                    <div class="layui-inline">
+                        <label class="layui-form-label" style="width:90px;">历史天数</label>
+                        <div class="layui-input-inline" style="width:100px;">
+                            <input type="number" id="historyDays" value="7" min="1" max="30" class="layui-input">
+                        </div>
+                    </div>
+                    <button class="layui-btn layui-btn-sm" id="btnRefresh"><i class="layui-icon layui-icon-refresh"></i> 刷新</button>
+                    <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnActivateNextOrder"><i class="layui-icon layui-icon-next"></i> 开启下一工单</button>
+                </div>
+
+                <div class="summary-bar">
+                    当前工单：<span class="tag-current" id="currentOrderText">-</span>
+                    <span class="spec-row">当前规格 SKUSEQ=<span id="currentSkuText">-</span></span>
+                    <span class="spec-row" id="activateNextBlockReason" style="color:#FF5722;margin-left:12px;display:none;"></span>
+                </div>
+
+                <div class="section-title">进行中</div>
+                <table id="activeTable" lay-filter="activeTable"></table>
+
+                <div class="section-title">等待中</div>
+                <table id="waitingTable" lay-filter="waitingTable"></table>
+
+                <div class="section-title">历史（只读）</div>
+                <table id="historyTable" lay-filter="historyTable"></table>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/html" id="colName">
+        {{# if(d.IsSpec){ }}
+        <span class="spec-row"><span class="spec-indent">└</span>#{{ d.SkuSeq }} {{ d.Spec }}</span>
+        {{# } else { }}
+        <span class="wo-row-toggle" data-order-id="{{ d.OrderId }}">
+            <i class="layui-icon {{ d._expanded ? 'layui-icon-triangle-d' : 'layui-icon-triangle-r' }}"></i>
+            <strong>{{ d.Workname || d.OrderId }}</strong>
+            {{# if(!d._expanded && d._specCount > 0){ }}
+            <span class="wo-row-collapsed">（{{ d._specCount }} 个规格）</span>
+            {{# } }}
+        </span>
+        {{# } }}
+    </script>
+
+    <script type="text/html" id="colStatus">
+        {{# if(!d.IsSpec){ }}
+        {{# if(d.QueueStatus === 'active'){ }}<span class="status-active">{{ d.QueueStatusText }}</span>
+        {{# } else if(d.QueueStatus === 'waiting'){ }}<span class="status-waiting">{{ d.QueueStatusText }}</span>
+        {{# } else if(d.QueueStatus === 'completed'){ }}<span class="status-completed">{{ d.QueueStatusText }}</span>
+        {{# } else { }}<span class="status-abnormal">{{ d.QueueStatusText }}</span>{{# } }}
+        {{# } else { }}-{{# } }}
+    </script>
+
+    <script type="text/html" id="colProgress">
+        {{# if(d.IsSpec){ }}
+        有效 {{ d.ActiveQty }}/{{ d.DemandQty }}，已装 {{ d.DoneTrays }}，异常 {{ d.AbnormalTrays }}
+        {{# } else { }}
+        待处理 {{ d.PendingTrays }} / 总 {{ d.DemandQty }}
+        {{# } }}
+    </script>
+
+    <script type="text/html" id="colActionsActive">
+        {{# if(d.IsSpec){ }}
+        <button class="layui-btn layui-btn-xs" lay-event="detail">托盘明细</button>
+        {{# if(d.IsCurrentExecutingSpec || d.isCurrentExecutingSpec){ }}
+        <span class="layui-badge layui-bg-blue">执行中</span>
+        {{# } }}
+        {{# if(d.CanActivateNextSpec || d.canActivateNextSpec){ }}
+        <button class="layui-btn layui-btn-xs layui-btn-normal" lay-event="nextSpec">下一规格</button>
+        {{# } }}
+        {{# if(d.CanActivateNextOrder || d.canActivateNextOrder){ }}
+        <button class="layui-btn layui-btn-xs layui-btn-normal" lay-event="nextOrder">下一工单</button>
+        {{# } }}
+        {{# if(d.CanCancelCurrentSpec || d.canCancelCurrentSpec){ }}
+        <button class="layui-btn layui-btn-xs btn-cancel-spec" lay-event="cancelSpec">取消当前规格</button>
+        {{# } }}
+        {{# } else { }}
+        {{# if((!d.ReadOnly && !d.readOnly) && (d.CanActivateNextOrder || d.canActivateNextOrder)){ }}
+        <button class="layui-btn layui-btn-xs layui-btn-normal" lay-event="nextOrder">下一工单</button>
+        {{# } }}
+        {{# if(d.CanCancelEntireOrder || d.canCancelEntireOrder){ }}
+        <button class="layui-btn layui-btn-xs btn-cancel-order" lay-event="cancelOrder">整单取消</button>
+        {{# } }}
+        {{# if(d.CanForceCloseWorkOrder || d.canForceCloseWorkOrder){ }}
+        <button class="layui-btn layui-btn-xs btn-force-abnormal" lay-event="forceClose">强制结案</button>
+        {{# } }}
+        {{# } }}
+    </script>
+
+    <script type="text/html" id="colActionsReadonly">
+        {{# if(d.IsSpec){ }}
+        <button class="layui-btn layui-btn-xs layui-btn-primary" lay-event="detail">查看明细</button>
+        {{# } }}
+    </script>
+
+    <script type="text/html" id="colActionsWaiting">
+        {{# if(!d.IsSpec && (d.CanCancelEntireOrder || d.canCancelEntireOrder)){ }}
+        <button class="layui-btn layui-btn-xs btn-cancel-order" lay-event="cancelOrder">整单取消</button>
+        {{# } }}
+    </script>
+
+    <script>
+        layui.use(['table', 'layer'], function () {
+            var table = layui.table;
+            var layer = layui.layer;
+            var $ = layui.$;
+            var pageData = null;
+            var tableIds = { active: 'activeTable', waiting: 'waitingTable', history: 'historyTable' };
+            var sectionData = { active: [], waiting: [], history: [] };
+            var expandedState = { active: {}, waiting: {}, history: {} };
+
+            function pick(obj, name) {
+                if (!obj) return null;
+                if (obj[name] !== undefined && obj[name] !== null) return obj[name];
+                var lower = name.charAt(0).toLowerCase() + name.slice(1);
+                return obj[lower];
+            }
+
+            function isExpanded(section, orderId) {
+                return expandedState[section][orderId] !== false;
+            }
+
+            function flattenTreeNodes(nodes, section) {
+                var rows = [];
+                (nodes || []).forEach(function (wo) {
+                    var orderId = wo.OrderId || wo.orderId || '';
+                    var children = wo.Children || wo.children || [];
+                    var expanded = isExpanded(section, orderId);
+                    var woRow = $.extend({}, wo, {
+                        IsSpec: false,
+                        _expanded: expanded,
+                        _specCount: children.length
+                    });
+                    rows.push(woRow);
+                    if (expanded) {
+                        children.forEach(function (spec) {
+                            rows.push($.extend({}, spec, { IsSpec: true }));
+                        });
+                    }
+                });
+                return rows;
+            }
+
+            function formatCreateTime(d) {
+                var val = pick(d, 'CreateTime');
+                if (val == null || val === '') {
+                    return '';
+                }
+                if (typeof val === 'string' && val.indexOf('/Date(') >= 0) {
+                    return FormatToDate(val);
+                }
+                if (typeof val === 'string') {
+                    return val;
+                }
+                return val;
+            }
+
+            function buildCols(actionTpl) {
+                return [[
+                    { field: 'Workname', title: '工单/规格', minWidth: 280, templet: '#colName' },
+                    { field: 'OrderId', title: '订单号', width: 150, templet: function (d) { return d.IsSpec ? '' : (d.OrderId || ''); } },
+                    { title: '状态', width: 100, templet: '#colStatus' },
+                    { title: '进度', minWidth: 240, templet: '#colProgress' },
+                    { field: 'SkuCount', title: '规格数', width: 80, templet: function (d) { return d.IsSpec ? '' : (d.SkuCount || ''); } },
+                    { field: 'CreateTime', title: '创建时间', width: 170, templet: function (d) { return formatCreateTime(d); } },
+                    { title: '操作', width: 380, toolbar: actionTpl, fixed: 'right' }
+                ]];
+            }
+
+            function renderTable(elemId, data, actionTpl, section) {
+                var flat = flattenTreeNodes(data, section);
+                if (table.cache[elemId]) {
+                    table.reload(elemId, { data: flat });
+                    return;
+                }
+                table.render({
+                    elem: '#' + elemId,
+                    id: elemId,
+                    data: flat,
+                    cols: buildCols(actionTpl),
+                    page: false,
+                    limit: 500,
+                    text: { none: '暂无数据' }
+                });
+            }
+
+            function toggleSectionOrder(section, orderId) {
+                expandedState[section][orderId] = !isExpanded(section, orderId);
+                var tpl = section === 'active' ? '#colActionsActive' : (section === 'waiting' ? '#colActionsWaiting' : '#colActionsReadonly');
+                renderTable(tableIds[section], sectionData[section], tpl, section);
+            }
+
+            function bindNameToggle(section) {
+                var tableId = tableIds[section];
+                $(document).off('click.sdwoToggle', '.layui-table-view[lay-id="' + tableId + '"] .wo-row-toggle');
+                $(document).on('click.sdwoToggle', '.layui-table-view[lay-id="' + tableId + '"] .wo-row-toggle', function () {
+                    var orderId = $(this).data('order-id');
+                    if (orderId) {
+                        toggleSectionOrder(section, orderId);
+                    }
+                });
+            }
+
+            function openSpecDetail(orderId, skuSeq, readOnly) {
+                layer.open({
+                    type: 2,
+                    title: readOnly ? '托盘明细（只读）' : '托盘明细 / 换料',
+                    area: ['1200px', '620px'],
+                    content: '/WMS/SmallDrillWorkOrder/SpecDetail?orderId=' + encodeURIComponent(orderId) + '&skuSeq=' + skuSeq,
+                    end: function () { loadData(); }
+                });
+            }
+
+            function bindTools(filter, allowWrite, section) {
+                table.on('tool(' + filter + ')', function (obj) {
+                    var d = obj.data;
+                    if (obj.event === 'detail' && d.IsSpec) {
+                        openSpecDetail(d.OrderId, d.SkuSeq, !allowWrite || d.ReadOnly || !d.IsCurrentExecutingSpec);
+                    } else if (obj.event === 'nextSpec' && allowWrite && d.IsSpec) {
+                        layer.confirm('确认开启下一规格？', function (idx) {
+                            layer.close(idx);
+                            $.post('/WMS/SmallDrillWorkOrder/ActivateNextSpec', { orderId: d.OrderId, skuSeq: d.SkuSeq }, function (res) {
+                                layer.msg(res.msg || '');
+                                if (res.success) loadData();
+                            });
+                        });
+                    } else if (obj.event === 'nextOrder' && allowWrite && (d.CanActivateNextOrder || d.canActivateNextOrder)) {
+                        var activateFromOrderId = pick(pageData, 'CurrentOrderId') || d.OrderId || '';
+                        layer.confirm('确认开启下一工单？', function (idx) {
+                            layer.close(idx);
+                            $.post('/WMS/SmallDrillWorkOrder/ActivateNextOrder', { currentOrderId: activateFromOrderId }, function (res) {
+                                layer.msg(res.msg || '');
+                                if (res.success) loadData();
+                            });
+                        });
+                    } else if (obj.event === 'cancelSpec' && allowWrite && d.IsSpec) {
+                        layer.prompt({ title: '取消当前规格（将未装盘托盘全部标记异常）', formType: 2, value: '取消当前规格' }, function (reason, idx) {
+                            layer.close(idx);
+                            $.post('/WMS/SmallDrillWorkOrder/CancelCurrentSpec', { orderId: d.OrderId, skuSeq: d.SkuSeq, reason: reason }, function (res) {
+                                layer.msg(res.msg || '');
+                                if (res.success) loadData();
+                            });
+                        });
+                    } else if (obj.event === 'cancelOrder' && allowWrite && !d.IsSpec) {
+                        layer.prompt({ title: '整单取消（将未完成托盘全部标记异常）', formType: 2, value: '整单取消' }, function (reason, idx) {
+                            layer.close(idx);
+                            $.post('/WMS/SmallDrillWorkOrder/CancelEntireOrder', { orderId: d.OrderId, reason: reason }, function (res) {
+                                layer.msg(res.msg || '');
+                                if (res.success) loadData();
+                            });
+                        });
+                    } else if (obj.event === 'forceClose' && allowWrite && !d.IsSpec) {
+                        layer.confirm(
+                            '强制结案：待换料异常盘将不再要求换料，工单进入历史（适用于库内无库存无法换料）。确认继续？',
+                            function (idx) {
+                                layer.close(idx);
+                                layer.prompt({ title: '结案原因（可选）', formType: 2, value: '强制结案(无库存无法换料)' }, function (reason, idx2) {
+                                    layer.close(idx2);
+                                    $.post('/WMS/SmallDrillWorkOrder/ForceCloseWorkOrder', { orderId: d.OrderId, reason: reason }, function (res) {
+                                        layer.msg(res.msg || '');
+                                        if (res.success) loadData();
+                                    });
+                                });
+                            });
+                    }
+                });
+            }
+
+            function loadData() {
+                var days = $('#historyDays').val() || 7;
+                $.get('/WMS/SmallDrillWorkOrder/GetWorkOrders', { historyDays: days })
+                    .done(function (res) {
+                        if (!res || res.success === false) {
+                            layer.msg((res && res.msg) || '加载失败');
+                            return;
+                        }
+                        pageData = pick(res, 'data') || {};
+                        $('#currentOrderText').text(pick(pageData, 'CurrentOrderId') || '无');
+                        $('#currentSkuText').text(pick(pageData, 'CurrentSkuSeq') || '-');
+
+                        var canNextOrder = !!pick(pageData, 'CanActivateNextOrder');
+                        $('#btnActivateNextOrder').prop('disabled', !canNextOrder);
+                        if (canNextOrder) {
+                            $('#btnActivateNextOrder').removeClass('layui-btn-disabled');
+                        } else {
+                            $('#btnActivateNextOrder').addClass('layui-btn-disabled');
+                        }
+                        var blockReason = pick(pageData, 'ActivateNextOrderBlockReason') || '';
+                        if (!canNextOrder && blockReason) {
+                            $('#activateNextBlockReason').text('无法开启下一工单：' + blockReason).show();
+                        } else {
+                            $('#activateNextBlockReason').hide().text('');
+                        }
+
+                        sectionData.active = pick(pageData, 'Active') || [];
+                        sectionData.waiting = pick(pageData, 'Waiting') || [];
+                        sectionData.history = pick(pageData, 'History') || [];
+
+                        renderTable('activeTable', sectionData.active, '#colActionsActive', 'active');
+                        renderTable('waitingTable', sectionData.waiting, '#colActionsWaiting', 'waiting');
+                        renderTable('historyTable', sectionData.history, '#colActionsReadonly', 'history');
+                    })
+                    .fail(function (xhr) {
+                        layer.msg('请求失败：' + (xhr.status || '') + ' ' + (xhr.statusText || ''));
+                    });
+            }
+
+            bindTools('activeTable', true, 'active');
+            bindTools('waitingTable', true, 'waiting');
+            bindTools('historyTable', false, 'history');
+            bindNameToggle('active');
+            bindNameToggle('waiting');
+            bindNameToggle('history');
+
+            $('#btnRefresh').on('click', loadData);
+            $('#historyDays').on('keydown', function (e) {
+                if (e.keyCode === 13) {
+                    loadData();
+                }
+            });
+            $('#btnActivateNextOrder').on('click', function () {
+                if ($(this).prop('disabled')) {
+                    return;
+                }
+                var currentOrderId = pick(pageData, 'CurrentOrderId') || '';
+                layer.confirm('确认开启下一工单？', function (idx) {
+                    layer.close(idx);
+                    $.post('/WMS/SmallDrillWorkOrder/ActivateNextOrder', { currentOrderId: currentOrderId }, function (res) {
+                        layer.msg(res.msg || '');
+                        if (res.success) loadData();
+                    });
+                });
+            });
+            loadData();
+            setInterval(loadData, 30000);
+        });
+    </script>
+</body>
+</html>

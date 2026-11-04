@@ -1,0 +1,308 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>项目管理
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+                        <div class="layui-inline">
+                            <input type="text" name="searchCOMPANYNAME" placeholder="公司名称" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchPROJECTCODE" placeholder="项目号" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchPROJECTNAME" placeholder="项目名称" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchPROJECTTYPE" placeholder="型号" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <select id="searchSTATE" name="searchSTATE" readonly="true" placeholder="竞标状态">
+                                <option value="-10">竞标状态</option>
+                                <option value="0">待报价</option>
+                                <option value="1">已截止</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div">
+                </div>
+                <table class="layui-hide" id="product" lay-filter="product"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm">
+                招标或报价有任何违规行为。投诉邮箱：Jichenzb@ks-jichen.com
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+    //初始化
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+        searchClick();
+    })
+
+    //获取select数据
+    function getSelectData(code, name) {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/Location/GetSearchSelectListByZone',
+            data: { code: code, name: name },
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+
+    //获取用户名
+    function getUsertData() {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/Location/GetUsertData',
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+
+    //基本设置
+    function loadDatagrid(COMPANYNAME, PROJECTCODE, PROJECTNAME, PROJECTTYPE, STATE) {
+        var tableCols = [[
+            { field: 'ID', title: 'ID', align: 'center', width: 200, sort: true, hide: true },
+            { field: 'COMPANYNAME', title: '公司名称', align: 'center', width: 120, sort: true },
+            { field: 'PROJECTCODE', title: '项目号', align: 'center', width: 100, sort: true },
+            { field: 'PROJECTNAME', title: '项目名称', align: 'center', width: 120, sort: true },
+            { field: 'PROJECTTYPE', title: '型号', align: 'center', width: 100, sort: true },
+            { field: 'UNITPRICE', title: '单价', align: 'center', width: 100, sort: true },
+            { field: 'NUMBER', title: '数量', align: 'center', width: 100, sort: true },
+            { field: 'DESCRIBE', title: '项目描述', align: 'center', width: 200, sort: true },
+            { field: 'BUDGET', title: '预算', align: 'center', width: 100, sort: true },
+            { field: 'MINPRICE', title: '价格下限', align: 'center', width: 100, sort: true },
+            { field: 'MAXPRICE', title: '价格上限', align: 'center', width: 100, sort: true },
+            { field: 'RANGEPRICE', title: '降价区间', align: 'center', width: 100, sort: true },
+            {
+                field: 'STARTTIME', title: '开始时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.STARTTIME);
+                    }
+            },
+            {
+                field: 'ENDTIME', title: '截止时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.ENDTIME);
+                    }
+            },
+            { field: 'CUSTOMERS', title: '参与人数', align: 'center', width: 100, hide: true, sort: true },
+            { field: 'BID', title: '中标者', align: 'center', width: 100, sort: true },
+            { field: 'BIDPRICE', title: '中标价格', align: 'center', width: 100, sort: true },
+            {
+                field: 'BIDTIME', title: '竞价时间', align: 'center', width: 180, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.BIDTIME);
+                    }
+            },
+            { field: 'DELAYTIMES', title: '延时次数', align: 'center', width: 100, sort: true },
+            { field: 'FILEADDRESS', title: '项目文档', align: 'center', width: 100, sort: true, hide: true },
+            {
+                field: 'STATE', title: '竞标状态', fixed: 'right', width: 100, templet: function (d) {
+                    if (d.STATE == 1) {
+                        return "<span class='layui-badge layui-bg-red'>已截止</span>";
+                    }
+                    else {
+                        return "<span class='layui-badge layui-bg-blue'>待报价</span>";
+                    }
+                }
+            }
+        ]];
+
+        hg.table.datatable('product', '项目管理', '/BIDD/BiddingProject/GetRowData',
+            {
+                COMPANYNAME: COMPANYNAME,
+                PROJECTCODE: PROJECTCODE,
+                PROJECTNAME: PROJECTNAME,
+                PROJECTTYPE: PROJECTTYPE,
+                STATE: STATE,
+            },
+            tableCols, '', true, 'full-255');
+    }
+
+    //查询
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery'], function () {
+            $ = layui.jquery;
+            var form = layui.form;
+            var data = form.val('example');
+            var COMPANYNAME = data.searchCOMPANYNAME;
+            var PROJECTCODE = data.searchPROJECTCODE;
+            var PROJECTNAME = data.searchPROJECTNAME;
+            var PROJECTTYPE = data.searchPROJECTTYPE;
+            var STATE = data.searchSTATE;
+            loadDatagrid(COMPANYNAME, PROJECTCODE, PROJECTNAME, PROJECTTYPE, STATE);
+        })
+    }
+
+    //新增 ✅ 修复带token
+    function addClick() {
+        var token = getCurrentToken();
+        var url = '/BIDD/BiddingProject/AddOrEdit?typeflag=0';
+        if (token) url += '&token=' + token;
+        hg.open('发布项目', url, 700, 600);
+    }
+
+    //查看竞标情况
+    function seedetailClick() {
+        var row = hg.table.datatable('product', 'getSelected');
+        if (row) {
+            if (row.data.STATE == 1) {
+                var datas = "PROJECTCODE=" + row.data.PROJECTCODE + "&type=0&flag=0";
+                hg.open('查看竞标明细', '/BIDD/BiddingProject/Detail?' + datas);
+            } else {
+                hg.msg('竞标未结束暂不能查看！');
+            }
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    //查看非入围情况
+    function seeundetailClick() {
+        var row = hg.table.datatable('product', 'getSelected');
+        if (row) {
+            if (row.data.STATE == 1) {
+                var datas = "PROJECTCODE=" + row.data.PROJECTCODE + "&type=1&flag=0";
+                hg.open('查看竞标明细', '/BIDD/BiddingProject/Detail?' + datas);
+            } else {
+                hg.msg('竞标未结束暂不能查看！');
+            }
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    //管理员查看竞标情况
+    function adminseedetailClick() {
+        var row = hg.table.datatable('product', 'getSelected');
+        if (row) {
+            var datas = "PROJECTCODE=" + row.data.PROJECTCODE + "&type=0&flag=1";
+            hg.open('查看竞标明细', '/BIDD/BiddingProject/Detail?' + datas);
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    //修改 ✅【彻底修复】
+    function editClick() {
+        var row = hg.table.datatable('product', 'getSelected');
+        if (row) {
+            var token = getCurrentToken();
+            var datas =
+                "&ID=" + row.data.ID +
+                "&COMPANYNAME=" + row.data.COMPANYNAME +
+                "&PROJECTCODE=" + row.data.PROJECTCODE +
+                "&PROJECTNAME=" + row.data.PROJECTNAME +
+                "&PROJECTTYPE=" + row.data.PROJECTTYPE +
+                "&UNITPRICE=" + row.data.UNITPRICE +
+                "&NUMBER=" + row.data.NUMBER +
+                "&DESCRIBE=" + row.data.DESCRIBE +
+                "&BUDGET=" + row.data.BUDGET +
+                "&MINPRICE=" + row.data.MINPRICE +
+                "&MAXPRICE=" + row.data.MAXPRICE +
+                "&RANGEPRICE=" + row.data.RANGEPRICE +
+                "&STARTTIME=" + row.data.STARTTIME +
+                "&DELAYTIMES=" + row.data.DELAYTIMES +
+                "&FILEADDRESS=" + row.data.FILEADDRESS +
+                "&ENDTIME=" + row.data.ENDTIME;
+
+            var url = '/BIDD/BiddingProject/AddOrEdit?typeflag=1' + datas;
+            if (token) url += '&token=' + token;
+
+            hg.open('编辑', url, 700, 600);
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    //删除
+    function delClick() {
+        var row = hg.table.datatable('product', 'getSelected');
+        if (row) {
+            hg.confirm("确定删除此项目吗？", function () {
+                $.ajax({
+                    async: false,
+                    type: "POST",
+                    url: '/BIDD/BiddingProject/DeleteProduct',
+                    data: { PROJECTCODE: row.data.PROJECTCODE },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg('删除成功！');
+                            setTimeout(function () { searchClick(); }, 500);
+                        } else {
+                            hg.msg('删除失败！');
+                        }
+                    },
+                    error: function (data) {
+                        hg.msg('删除失败！');
+                    }
+                })
+            });
+        } else {
+            hg.msg('请选中一行数据，再操作！');
+        }
+    }
+
+    //获取参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) return (r[2]);
+        return null;
+    }
+</script>

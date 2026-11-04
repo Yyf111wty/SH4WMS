@@ -1,0 +1,181 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+ 
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+            <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+            <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <form class="layui-form" action="" lay-filter="example">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        用户名
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="userName" name="userName" disabled=""
+                               class="layui-input">
+                        <input type="hidden" name="Id" id="Id" class="layui-input">
+
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        代表公司
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" name="trueName" id="trueName" disabled="" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label for="L_pass" class="layui-form-label" style="color:red">
+                        新密码
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="password" id="L_pass" name="pass"   autocomplete="off"
+                               class="layui-input">
+                    </div>                   
+                </div>
+                <div class="layui-form-item">
+                    <label for="L_repass" class="layui-form-label" style="color:red">
+                        确认密码
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="password" id="L_repass" name="repass"  lay-verify="repass"
+                               autocomplete="off" class="layui-input">
+                    </div>                   
+                </div>
+                <div class="layui-form-item">
+                    <label for="L_repass" class="layui-form-label"></label>
+                    <button class="layui-btn" lay-filter="add" lay-submit="">确定</button>
+                    <button class="layui-btn" onclick="cancelclick()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form,
+                    layer = layui.layer;
+                //自定义验证规则
+                form.verify({                  
+                    repass: function (value) {
+                        if ($('#L_pass').val() ==""|| $('#L_repass').val()=="") {
+                            return '密码和确认密码不能为空！';
+                        }
+                        if ($('#L_pass').val() != $('#L_repass').val()) {
+                            return '两次密码不一致';
+                        }
+                    }
+                });
+                var Id = GetQueryString('Id');
+                var UserName = GetQueryString('UserName');
+                var TrueName = GetQueryString('TrueName');
+                form.val('example', {
+                    "userName": UserName
+                    , "Id": Id
+                    , "trueName": UserName
+                    , "pass": ""
+                    , "repass": ""
+                });
+                form.render();
+
+                //监听提交
+                form.on('submit(add)',
+                    function (data) {
+                        saveUserAction(data);
+                        return false;
+                    });
+              
+                //return false;
+            });
+        //绑定取消按钮操作
+        function cancelclick() {
+            hg.close();
+        } 
+        function getToken() {
+            return GetQueryString("token");
+        }
+        function saveUserAction(data) {
+
+            $.ajax({
+                type: "POST",
+                url: '/Users/ResetPassword',
+                headers: {
+                    "Authorization": "Bearer " + getToken()  // ✅ 修复
+                },
+                data: { userName: data.field.userName, newpassword: data.field.repass },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+                        hg.msghide("修改密码成功"); // ✅ 使用框架支持的提示
+
+                        // hg.msg('修改密码成功');
+                    }
+                    else {
+                        //layer.alert("设置角色失败", {
+                        //    icon: 7
+                        //});
+                        hg.msghide("修改密码失败");
+                        //hg.msg('修改密码失败');
+                        // result = false;
+                    }
+                    hg.close();
+                    hg.base_reload();
+                },
+                error: function (data) {
+                    //layer.alert("设置角色失败", {
+                    //    icon: 7
+                    //});
+                    hg.msghide("修改密码失败");
+                    hg.close();
+                    hg.base_reload();
+                    // result = false;
+                }
+            })
+
+        }
+      
+        //获取传过来的值
+        function GetQueryString(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null)
+                return decodeURI(r[2]);
+            return null;
+        }
+       
+    </script>
+</body>
+
+</html>

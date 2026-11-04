@@ -1,0 +1,397 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <script src="~/module/treeselectexpend.js"></script>
+
+
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+            <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+            <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <form class="layui-form" action="" lay-filter="example">
+                <div class="layui-form-item">
+                    <label class="layui-form-label" style="color:red">
+                        用户名/公司
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="userName" name="userName" lay-verify="required" autocomplete="off"
+                               class="layui-input">
+                        <input type="hidden" name="UserGroupid" id="UserGroupid" lay-filter="UserGroupid" class="layui-input">
+                        <input type="hidden" name="Id" id="Id" lay-filter="Id" class="layui-input">
+                        <input type="hidden" id="type" name="type" class="layui-input">
+
+                    </div>
+                </div>
+                <div class="layui-form-item" hidden>
+                    <label class="layui-form-label" style="color:red">
+                        代表公司
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" name="trueName" id="trueName" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label" style="color:red">
+                        密码
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" name="password" id="password" lay-verify="required" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item" hidden>
+                    <label class="layui-form-label">
+                        秘钥类型
+                    </label>
+                    <div class="layui-input-block">
+                        <select id="SecretKeyType" name="SecretKeyType" readonly></select>
+                    </div>
+                </div>
+                <div class="layui-form-item" hidden>
+                    <label class="layui-form-label">秘钥值</label>
+                    <div class="layui-input-block">
+                        <input type="text" id="SecretKeyValue" name="SecretKeyValue" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label" style="color:red">所属组架</label>
+                    <div class="layui-input-block">
+                        <input type="text" id="tree" lay-filter="tree" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        手机号
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" name="mobile" id="mobile" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item" hidden>
+                    <label class="layui-form-label">
+                        电子邮箱
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" name="email" id="email" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label for="L_repass" class="layui-form-label"></label>
+                    <button class="layui-btn" lay-filter="add" lay-submit="">确定</button>
+                    <button class="layui-btn" onclick="cancelclick()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+    layui.use(['form', 'layer', 'jquery'],
+        function () {
+            $ = layui.jquery;
+            var form = layui.form,
+                layer = layui.layer;
+            var type = GetQueryString('type');
+            //自定义验证规则
+            //form.verify({
+            //    uName: function (value) {
+            //        if (value.length <=0) {
+            //            return '不能为空';
+            //        }
+            //    }
+            //});
+            //select填充数据
+            var selectdata = getSelectData();
+            $("#SecretKeyType").html(selectdata);
+            var selectdata = getSelectData();
+            $("#SecretKeyType").html(selectdata);
+            //初始化控件
+            if (type == 0) {
+                //$("#Name").val();
+                //$("#Describe").val();
+                //$("#ParentId").val("");
+                //$("#Id").val("");
+                form.val('example', {
+                    "userName": ""// "name": "value"
+                    , "type": type
+                    , "UserGroupid": ""
+                    , "Id": ""
+                    , "trueName": ""
+                    , "password": ""
+                    , "mobile": ""
+                    , "email": ""
+                    , "SecretKeyValue": ""
+
+                });
+                form.render();
+                // form.render(checkbox);
+                // $(" div em").val('禁用');
+            }
+            else {
+                var Id = GetQueryString('Id');
+                var UserName = GetQueryString('UserName');
+                var Password = getPWD(GetQueryString('Password'));
+                var TrueName = GetQueryString('TrueName');
+                var UserGroupName = GetQueryString('UserGroupName');
+                var UserGroupid = GetQueryString('UserGroupid');
+                var SecretKeyType = GetQueryString('SecretKeyType');
+                var SecretKeyValue = GetQueryString('SecretKeyValue') == "null" ? "" : GetQueryString('SecretKeyValue');
+                var Mobile = (GetQueryString('Mobile') == '' || GetQueryString('Mobile') == 'null' || GetQueryString('Mobile') == 'undefined') ? '' : GetQueryString('Mobile');
+                var Email = (GetQueryString('Email') == '' || GetQueryString('Email') == 'null' || GetQueryString('Email') == 'undefined') ? '' : GetQueryString('Email');
+                form.val('example', {
+                    "userName": UserName
+                    , "type": type
+                    , "UserGroupid": UserGroupid
+                    , "Id": Id
+                    , "trueName": TrueName
+                    , "password": Password
+                    , "mobile": Mobile
+                    , "email": Email
+                    , "SecretKeyValue": SecretKeyValue
+
+                });
+                if (SecretKeyType != "null" & SecretKeyType != "") {
+                    $("#SecretKeyType").val(SecretKeyType);
+                }
+
+                form.render();
+
+            }
+
+
+            //监听提交
+            form.on('submit(add)',
+                function (data) {
+                    saveUserAction(data);
+                    return false;
+                });
+
+        });
+    layui.use(['treeSelect', 'form', 'layer'], function () {
+        var treeSelect = layui.treeSelect,
+            form = layui.form,
+            $ = layui.jquery,
+            layer = layui.layer;
+        treeSelect.render({
+            // 选择器
+            elem: '#tree',
+            // 数据
+            data: '/Users/GetTreeSelectData',
+            // 异步加载方式：get/post，默认get
+            type: 'get',
+            // 占位符
+            placeholder: '请选择',
+            // 是否开启搜索功能：true/false，默认false
+            search: true,
+            // 点击回调
+            click: function (d) {
+                console.log(d);
+                $("#UserGroupid").val(d.current.id);
+            },
+            // 加载完成后的回调函数
+            success: function (d) {
+                var s = $("#UserGroupid").val();
+                if (s != "") {
+                    treeSelect.checkNode('tree', s);
+                }
+                var treeObj = treeSelect.zTree('tree');
+
+                //                刷新树结构
+                treeSelect.refresh('tree');
+
+            }
+        });
+
+
+    });
+
+    //获取秘钥类型数句
+    function getSelectData() {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/Users/GetPlatformList',
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+
+    //获取组别下拉
+    function getGroupData() {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/Users/GetGroupData',
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+    //获取select数句
+    function getPWD(code) {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/Users/GetPWDByCode',
+            data: { code: code },
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+    //绑定取消按钮操作
+    function cancelclick() {
+        hg.close();
+    }
+    function getToken() {
+        return GetQueryString("token");
+    }
+    //保存、编辑操作
+    function saveUserAction(data) {
+        var url = data.field.type == "0"
+            ? '/Users/AddUsers'
+            : '/Users/EditUsers';
+        if (data.field.UserGroupid == "") {
+                hg.msg("所属组别不能为空！");
+                return;
+
+            }
+        $.ajax({
+            type: "POST",
+            url: url,
+            headers: {
+                "Authorization": "Bearer " + getToken()  // ✅ 修复
+            },
+            data: data.field,
+            dataType: "json",
+            success: function (res) {
+                if (res.result === true) {
+                    hg.msghide("保存成功"); // ✅ 使用框架支持的提示
+                    hg.close();
+                    hg.base_reload();
+
+
+                } else {
+                    hg.msg("保存失败：" + (res.message || res.result));
+                    hg.close();
+                    hg.base_reload();
+                }
+            },
+            error: function () {
+                hg.msg("请求异常");
+                hg.close();
+                hg.base_reload();
+            }
+        });
+    }
+    //获取传过来的值
+    //
+    //保存、编辑操作
+    //function saveUserAction(data) {
+
+
+    //    if (data.field.UserGroupid == "") {
+    //        hg.msg("所属组别不能为空！");
+    //        return;
+
+    //    }
+    //    if (data.field.type == "0") {
+    //        $.ajax({
+    //            type: "POST",
+    //            url: '/Users/AddUsers',
+    //            data: { userName: data.field.userName, password: data.field.password, trueName: data.field.userName, userGroupid: data.field.UserGroupid, mobile: data.field.mobile, email: data.field.email, SecretKeyType: data.field.SecretKeyType, SecretKeyValue: data.field.SecretKeyValue },
+    //            dataType: "json",
+    //            success: function (data) {
+    //                if (data.result == true) {
+    //                    hg.msg("添加成功");
+    //                    hg.close();
+    //                    hg.base_reload();
+    //                }
+    //                else {
+    //                    hg.msg("添加失败:" + data.message);
+    //                    return false;
+    //                }
+
+    //            },
+    //            error: function (data) {
+    //                hg.msg("添加失败:" + data.message);
+    //                return false;
+    //            }
+    //        })
+    //    } else {
+    //        $.ajax({
+    //            type: "POST",
+    //            url: '/Users/EditUsers',
+    //            data: { id: data.field.Id, userName: data.field.userName, password: data.field.password, trueName: data.field.userName, userGroupid: data.field.UserGroupid, mobile: data.field.mobile, email: data.field.email, SecretKeyType: data.field.SecretKeyType, SecretKeyValue: data.field.SecretKeyValue },
+    //            dataType: "json",
+    //            success: function (data) {
+    //                if (data.result == true) {
+    //                    hg.msg("修改成功");
+    //                    hg.close();
+    //                    hg.base_reload();
+    //                }
+    //                else {
+    //                    hg.msg("修改失败：" + data.message);
+    //                    return false;
+    //                }
+    //            },
+    //            error: function (data) {
+    //                hg.msg("修改失败：" + data.message);
+    //                return false;
+    //            }
+    //        })
+    //    }
+
+
+    //}
+    //获取传过来的值
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return decodeURI(r[2]);
+        return null;
+    }
+
+</script>

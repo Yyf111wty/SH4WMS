@@ -1,0 +1,324 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+        <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <script src="~/module/treeselectexpend.js"></script>
+
+
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+            <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+            <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <form class="layui-form" action=""  lay-filter="example">
+                <div class="layui-form-item">
+                    <label  class="layui-form-label"   style="color:red">
+                        班组名称
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="Name" name="Name"  lay-verify="vname" autocomplete="off"
+                               class="layui-input">
+                        <input type="hidden" name="ParentId" id="ParentId" lay-filter="ParentId" class="layui-input">
+                        <input type="hidden" name="Id" id="Id" lay-filter="Id" class="layui-input">
+                        <input type="hidden" id="type" name="type" class="layui-input">
+
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">所属班组</label>
+                    <div class="layui-input-block">
+                        <input type="text" id="tree" lay-filter="tree" class="layui-input">
+                       
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label  class="layui-form-label">
+                        组描述
+                    </label>
+                    <div class="layui-input-block">                       
+                        <textarea   id="Describes" name="Describes" placeholder="请输入" class="layui-textarea"></textarea>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        是否启用
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="checkbox"  name="isEnabled" lay-skin="switch" lay-filter="switchTest" lay-text="启用|禁用">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label for="L_repass" class="layui-form-label"></label>
+                    <button class="layui-btn" lay-filter="add" lay-submit="">确定</button>
+                    <button class="layui-btn"   onclick="cancelclick()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>  
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form,
+                    layer = layui.layer;
+                var type = GetQueryString('type');
+                //自定义验证规则
+                form.verify({
+                    vname: function (value) {
+                        if (value.length <=0) {
+                            return '班组名称不能为空';
+                        }
+                    }                  
+                });
+                //初始化控件
+                if (type == 0) {
+                    //$("#Name").val();
+                    //$("#Describe").val();
+                    //$("#ParentId").val("");
+                    //$("#Id").val("");
+                    form.val('example', {
+                        "Name": ""// "name": "value"
+                        , "type": type
+                        , "Describes": ""
+                        , "Id": ""
+                        , "ParentId": "" //复选框选中状态
+                        , "IsEnabled": "on" //开关状态
+
+                    });
+                    $("input[name='isEnabled']").attr("checked", "checked");
+                    form.render();
+                   // form.render(checkbox);
+                     // $(" div em").val('禁用');
+                }
+                else {
+                    var Id = GetQueryString('Id');
+                    var GroupName = GetQueryString('GroupName');
+                    var parentGroupId = GetQueryString('parentGroupId');
+                    var Describes = GetQueryString('Describes');
+                    var IsEnabled = GetQueryString('IsEnabled');                   
+                    if (IsEnabled == "1") {
+
+                        form.val('example', {
+
+                            "Name": GroupName// "name": "value"
+                            , "type": type
+                            , "Describes": Describes
+                            , "Id": Id
+                            , "ParentId": parentGroupId //复选框选中状态
+                            , "IsEnabled": "on"//开关状态
+
+                        });
+                        $("input[name='isEnabled']").attr("checked", "checked");
+                        form.render();
+
+                    } else {
+                        //$(" div em").val('禁用');
+                        form.val('example', {
+                            "Name": GroupName// "name": "value"
+                            , "Describes": Describes
+                            , "Id": Id
+                            , "ParentId": parentGroupId //复选框选中状态                        
+                           
+                        });
+                        $("input[name='isEnabled']").removeAttr("checked");
+                        form.render();
+                       // form.render(checkbox);
+                       
+                    }
+
+
+                    //$("#Name").val(GroupName);
+                    //$("#Describe").val(Describe);
+                    //$("#ParentId").val(parentGroupId);
+                    //$("#Id").val(Id);
+                   
+                }
+              
+             
+                //监听提交
+                form.on('submit(add)',
+                    function (data) {
+                        saveGroupAction(data);
+                        ////获取所有参数
+                        //var isEnabled=false;
+                        //if ($(".layui-unselect layui-form-switch   em").val() == "启用") {
+                        //    isEnabled = true;
+                        //} else {
+                        //    isEnabled = false;
+                        //}
+                        //var groupName = $("#Name").val();
+                        //var parentGroupId = 0;                      
+                        //if ($("#ParentId").val()!= "") {
+                        //    var parentGroupId = $("#ParentId").val();
+                        //} else {
+                        //    var parentGroupId = 0;
+                        //}
+                        //var describe = $("#Describe").val();
+                        ////                       
+                      
+                    });
+                return false;
+
+            });
+        layui.use(['treeSelect', 'form', 'layer'], function () {
+            var treeSelect = layui.treeSelect,
+                form = layui.form,
+                $ = layui.jquery,
+                layer = layui.layer;
+            treeSelect.render({
+                // 选择器
+                elem: '#tree',
+                // 数据
+                data: '/Groups/GetTreeSelectData',
+                // 异步加载方式：get/post，默认get
+                type: 'get',
+                // 占位符
+                placeholder: '请选择',
+                // 是否开启搜索功能：true/false，默认false
+                search: true,
+                // 点击回调
+                click: function (d) {
+                    console.log(d);
+                    $("#ParentId").val(d.current.id);
+                },
+                // 加载完成后的回调函数
+                success: function (d) {
+                    var s = $("#ParentId").val();
+                    if (s != "") {
+                        treeSelect.checkNode('tree', s);                      
+                    }
+                    var treeObj = treeSelect.zTree('tree');
+                
+                    //                刷新树结构
+                    treeSelect.refresh('tree');
+                  
+                }
+            });
+
+
+        });
+
+        //绑定取消按钮操作
+        function cancelclick() {
+            hg.close();
+        }
+
+        //
+        //保存、编辑操作
+        function saveGroupAction(data) {
+            var isEnabled = true;
+            if (typeof (data.field.isEnabled) == "undefined") {
+                isEnabled = false;
+            }
+            var parentGroupId = data.field.ParentId;
+            if (data.field.ParentId == "") {
+                parentGroupId = 0;
+            }
+            if (data.field.type == "0") {
+                $.ajax({
+                    type: "POST",
+                    url: '/Groups/AddGroups',
+                    data: { groupName: data.field.Name, parentGroupId: parentGroupId, describe: data.field.Describes, isEnabled: isEnabled },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg("添加成功");
+                            hg.close();
+                            hg.base_reload();
+                        }
+                        else {
+                            hg.msg("添加失败:" + data.message);
+                            return false;
+                        }                      
+                    },
+                    error: function (data) {
+                        hg.msg("添加失败:" + data.message);
+                        return false;
+                    }
+                })
+            } else {
+                $.ajax({
+                    type: "POST",
+                    url: '/Groups/EditGroups',
+                    data: { id: data.field.Id, groupName: data.field.Name, parentGroupId: parentGroupId, describe: data.field.Describes, isEnabled: isEnabled },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg("修改成功");
+                            hg.close();
+                            hg.base_reload();
+                        }
+                        else {
+                            hg.msg("修改失败:" + data.message);
+                            return false;
+                        }
+                      
+                    },
+                    error: function (data) {
+                        hg.msg("修改失败:" + data.message);
+                        return false;
+                    }
+                })
+            }
+
+
+        }
+        //获取传过来的值
+        function GetQueryString(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null)
+                return decodeURI(r[2]);
+            return null;
+        }
+        // 后台返回数据
+        function getTreeJson() {
+
+            var treedata;
+            $.ajax({
+                type: "get",
+                async: false,//同步执行
+                url: "/Groups/GetTreeSelectData",
+                dataType: "json",
+                success: function (result) {
+                    treedata = result;
+                },
+                error: function (message) {
+                    //$.messageBox('系统提示', message); return;
+                    layer.alert(message, { icon: 6 }); return;
+
+                }
+            })
+            return treedata;
+        }
+
+    </script>
+</body>
+
+</html>

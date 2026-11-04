@@ -1,0 +1,236 @@
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>系统日志</title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>系统日志
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+                        <div class="layui-inline">
+                            <input type="text" name="searchCreator" placeholder="请求方法" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchMessage" placeholder="处理结果" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchData" placeholder="请求参数" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline" style="width:280px;">
+                            <input type="text" id="dateRange" class="layui-input" placeholder="请选择时间范围">
+                        </div>
+                        <div class="layui-inline">
+                            <button type="button" class="layui-btn layui-btn-sm" onclick="searchClick()"><i class="layui-icon">&#xe615;</i>查询</button>
+                            <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" onclick="resetClick()"><i class="layui-icon">&#xe669;</i>重置</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div"></div>
+                <table class="layui-hide" id="systemLogTable" lay-filter="systemLogTable"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm">
+                Copyright @@ks-jichen.com  2026-2027 All Rights Reserved.
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script type="text/html" id="detailBar">
+    <a class="layui-btn layui-btn-xs" lay-event="detail">详情</a>
+</script>
+<script>
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+
+        searchClick();
+    });
+
+    function truncateText(text, maxLen) {
+        if (!text) {
+            return '';
+        }
+        if (text.length <= maxLen) {
+            return text;
+        }
+        return text.substring(0, maxLen) + '...';
+    }
+
+    function loadDatagrid(creator, message, data, startTime, endTime) {
+        var tableCols = [[
+            { field: 'CreateTime', title: '时间', align: 'center', width: 170, sort: true, templet: function (d) { return FormatToDate(d.CreateTime); } },
+            { field: 'Creator', title: '请求方法', align: 'center', width: 200, sort: true },
+            { field: 'Path', title: '方法名', align: 'center', width: 220, sort: true },
+            { field: 'Message', title: '处理结果', align: 'left', minWidth: 180, sort: true },
+            {
+                field: 'Data', title: '请求参数', align: 'left', minWidth: 240, templet: function (d) {
+                    return escapeHtml(truncateText(d.Data, 80));
+                }
+            },
+            { title: '操作', width: 90, toolbar: '#detailBar', fixed: 'right' }
+        ]];
+
+        hg.table.datatable('systemLogTable', '系统日志', '/WMS/SystemLog/GetRowData',
+            {
+                Creator: creator,
+                Message: message,
+                Data: data,
+                startTime: startTime,
+                endTime: endTime
+            },
+            tableCols, '', true, 'full-255');
+    }
+
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery', 'laydate'], function () {
+            $ = layui.jquery;
+            var form = layui.form;
+            var laydate = layui.laydate;
+            laydate.render({
+                elem: '#dateRange',
+                type: 'datetime',
+                range: true,
+                format: 'yyyy-MM-dd HH:mm:ss'
+            });
+            form.render();
+
+            var data = form.val('example');
+            var timeRange = $("#dateRange").val();
+            var startTime = "";
+            var endTime = "";
+            if (timeRange) {
+                var arr = timeRange.split(" - ");
+                startTime = arr[0] || "";
+                endTime = arr[1] || "";
+            }
+
+            var params = {
+                Creator: data.searchCreator,
+                Message: data.searchMessage,
+                Data: data.searchData,
+                startTime: startTime,
+                endTime: endTime
+            };
+
+            if (hg.table.datatablestatus && hg.table.datatablestatus.systemLogTable) {
+                hg.table.datatable('systemLogTable', 'reload', params);
+                return;
+            }
+
+            loadDatagrid(params.Creator, params.Message, params.Data, params.startTime, params.endTime);
+        });
+    }
+
+    function resetClick() {
+        layui.use(['form'], function () {
+            var form = layui.form;
+            form.val('example', {
+                searchCreator: '',
+                searchMessage: '',
+                searchData: ''
+            });
+            $('#dateRange').val('');
+            form.render();
+            searchClick();
+        });
+    }
+
+    layui.use(['table', 'layer'], function () {
+        var table = layui.table;
+        table.on('tool(systemLogTable)', function (obj) {
+            if (obj.event !== 'detail') {
+                return;
+            }
+
+            $.ajax({
+                type: 'get',
+                url: '/WMS/SystemLog/GetDetail',
+                data: { id: obj.data.ID },
+                dataType: 'json',
+                success: function (res) {
+                    if (!res || !res.success || !res.data) {
+                        hg.msg('未找到日志详情');
+                        return;
+                    }
+
+                    var row = res.data;
+                    var html = ''
+                        + '<div style="padding:12px;line-height:1.8;">'
+                        + '<div><b>时间：</b>' + FormatToDate(row.CreateTime) + '</div>'
+                        + '<div><b>请求方法：</b>' + escapeHtml(row.Creator || '') + '</div>'
+                        + '<div><b>方法名：</b>' + escapeHtml(row.Path || '') + '</div>'
+                        + '<div><b>处理结果：</b>' + escapeHtml(row.Message || '') + '</div>'
+                        + '<div><b>请求参数：</b><pre style="white-space:pre-wrap;word-break:break-all;">' + escapeHtml(formatJson(row.Data)) + '</pre></div>'
+                        + '</div>';
+
+                    layer.open({
+                        type: 1,
+                        title: '日志详情',
+                        area: ['760px', '80%'],
+                        content: html
+                    });
+                }
+            });
+        });
+    });
+
+    function formatJson(text) {
+        if (!text) {
+            return '';
+        }
+        try {
+            return JSON.stringify(JSON.parse(text), null, 2);
+        } catch (e) {
+            return text;
+        }
+    }
+
+    function escapeHtml(text) {
+        return $('<div/>').text(text || '').html();
+    }
+
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return r[2];
+        }
+        return null;
+    }
+</script>

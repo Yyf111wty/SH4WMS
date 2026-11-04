@@ -1,0 +1,131 @@
+﻿<#@ assembly name="System.Core"#>
+<#@ assembly name="System.Data"#>
+<#@ assembly name="D:\workfiles\模板\WMS系统模板\PM1018\PM1018\packages\MySql.Data.6.9.12\lib\net45\MySql.Data.dll" #>
+
+<#@ import namespace="System" #>
+<#@ import namespace="System.Data" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="MySql.Data.MySqlClient" #>
+<#+
+
+    public class Entity
+    {
+        public Entity()
+        {
+            this.Fields = new List<Field>();
+        }
+
+        public Entity(string name) : this()
+        {
+            EntityName = name;
+        }
+
+        public string EntityName { get; set; }
+        public List<Field> Fields { get; set; }
+    }
+
+    public class Field
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public string Comment { get; set; }
+        public bool IsPrimaryKey { get; set; }
+    }
+
+    public class EntityHelper
+    {
+        public static List<Entity> GetEntities(string connectionString, List<string> databases)
+        {
+            var list = new List<Entity>();
+
+            using (var conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                var dbs = string.Join("','", databases);
+
+                var sql = $@"
+                    SELECT 
+                        c.TABLE_SCHEMA,
+                        c.TABLE_NAME,
+                        c.COLUMN_NAME,
+                        c.DATA_TYPE,
+                        c.COLUMN_COMMENT,
+                        CASE WHEN pk.COLUMN_NAME IS NOT NULL THEN 1 ELSE 0 END AS IsPrimaryKey
+                    FROM information_schema.COLUMNS c
+                    LEFT JOIN (
+                        SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME 
+                        FROM information_schema.KEY_COLUMN_USAGE 
+                        WHERE CONSTRAINT_NAME = 'PRIMARY'
+                    ) pk ON 
+                        c.TABLE_SCHEMA = pk.TABLE_SCHEMA AND 
+                        c.TABLE_NAME = pk.TABLE_NAME AND 
+                        c.COLUMN_NAME = pk.COLUMN_NAME
+                    WHERE c.TABLE_SCHEMA IN ('{dbs}')
+                    ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION
+                ";
+
+                using (var reader = MySqlHelper.ExecuteReader(conn, sql))
+                {
+                    while (reader.Read())
+                    {
+                        var table = reader["TABLE_NAME"].ToString();
+                        var entity = list.FirstOrDefault(x => x.EntityName == table);
+
+                        if (entity == null)
+                        {
+                            entity = new Entity(table);
+                            list.Add(entity);
+                        }
+
+                        entity.Fields.Add(new Field
+                        {
+                            Name = reader["COLUMN_NAME"].ToString(),
+                            Type = GetCLRType(reader["DATA_TYPE"].ToString()),
+                            Comment = reader["COLUMN_COMMENT"].ToString(),
+                            IsPrimaryKey = Convert.ToBoolean(reader["IsPrimaryKey"])
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+
+        public static string GetCLRType(string dbType)
+        {
+            switch (dbType.ToLower())
+            {
+                case "tinyint":
+                case "smallint":
+                case "mediumint":
+                case "int":
+                case "integer": return "int";
+                case "bigint": return "long";
+                case "double": return "double";
+                case "float": return "float";
+                case "decimal":
+                case "numeric":
+                case "real": return "decimal";
+                case "bit": return "bool";
+                case "date":
+                case "datetime":
+                case "timestamp":
+                case "time":
+                case "year": return "DateTime";
+                case "char":
+                case "varchar":
+                case "tinytext":
+                case "text":
+                case "mediumtext":
+                case "longtext": return "string";
+                case "tinyblob":
+                case "blob":
+                case "mediumblob":
+                case "longblob":
+                case "binary":
+                case "varbinary": return "byte[]";
+                default: return "string";
+            }
+        }
+    }
+#>

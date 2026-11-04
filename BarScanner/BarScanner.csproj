@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TR.Common\TR.Common.csproj" />
+    <ProjectReference Include="..\TR.DAL\TR.DAL.csproj" />
+    <ProjectReference Include="..\TR.IDAL\TR.IDAL.csproj" />
+    <ProjectReference Include="..\TR.IService\TR.IService.csproj" />
+    <ProjectReference Include="..\TR.Model\TR.Model.csproj" />
+    <ProjectReference Include="..\TR.ORM\TR.ORM.csproj" />
+    <ProjectReference Include="..\TR.Service\TR.Service.csproj" />
+  </ItemGroup>
+
+</Project>

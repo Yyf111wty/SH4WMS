@@ -1,0 +1,248 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+            <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+            <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <form class="layui-form" action="" lay-filter="example">
+
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        物料规格种类<label style="color:red"> *</label>
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="ITEMCODE" name="ITEMCODE" class="layui-input" lay-verify="itemv">
+                        @*<select id="ITEMCODE" name="ITEMCODE" readonly lay-verify="itemv"></select>*@
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        预警数量<label style="color:red"> *</label>
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="MINSTORAGE" name="MINSTORAGE" class="layui-input" lay-verify="minv">
+                        <input type="hidden" id="typeflag" name="typeflag" class="layui-input">
+                        <input type="hidden" id="ID" name="ID" class="layui-input">
+                    </div>
+                </div>
+
+
+
+
+                <div class="layui-form-item">
+                    <label for="L_repass" class="layui-form-label"></label>
+                    <button class="layui-btn" lay-filter="add" lay-submit="">确定</button>
+                    <button class="layui-btn" onclick="cancelclick()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script>
+
+    //组件初始化
+    layui.use(['form', 'layer', 'jquery'],
+        function () {
+            $ = layui.jquery;
+            var form = layui.form;
+            var typeflag = GetQueryString('typeflag');
+            //  "^(0\.(1[5-9][0-9]|[2-9][0-9]{2})|[1-5]\.[0-9]{3}|6\.([0-4][0-9]{2}|500))([A-Z])?$";
+            //自定义验证规则
+            //form.verify({
+            //    itemv: [/^[0-9]\.[0-9]{3}[A-Z]?$/,  '规格格式错误，规格案例如1.500或1.500A'],
+            //}
+            //);
+            form.verify({
+                itemv: [/^[0-9]\.[0-9]{3}[A-Z]?\*M[0-9]$/, '规格格式错误，案例如1.500*M0或 1.500A*M5']
+            });
+            form.verify({
+                minv: [/^[1-9]\d*$/, '请输入大于0的正整数']
+            }
+            );
+            //var IDD = GetQueryString('ID');
+            //var WAREHOUSECODEd = GetQueryString('WAREHOUSECODE');
+
+            //初始化控件
+            if (typeflag == 0) {
+                form.val('example', {
+                    "ID": ""
+                    , "ITEMCODE": ""
+                    , "MINSTORAGE": ""
+                    , "typeflag": typeflag
+                });
+                $("#ITEMCODE").removeAttr("disabled");
+                form.render();
+            }
+            else {
+                var ID = GetQueryString('ID');
+
+                var ITEMCODE = GetQueryString('ITEMCODE');
+                var MINSTORAGE = GetQueryString('MINSTORAGE');
+                form.val('example', {
+                    "ID": ID
+                    , "ITEMCODE": ITEMCODE
+                    , "MINSTORAGE": MINSTORAGE
+
+                    , "typeflag": typeflag
+                });
+                $("#ITEMCODE").attr("disabled", "disabled");
+                form.render();
+
+            }
+            //监听提交
+            form.on('submit(add)',
+                function (data) {
+                    saveAction(data);
+                    return false;
+                });
+
+        });
+
+    //绑定取消按钮操作
+    function cancelclick() {
+        //var index = parent.layer.index; //获取当前弹层的索引号
+        //parent.layer.close(index); //关闭当前弹层
+        hg.close();
+    }
+    function getToken() {
+        return GetQueryString("token");
+    }
+
+    //
+    //保存、编辑操作
+    function saveAction(data) {
+
+        if (data.field.typeflag == "0") {
+            $.ajax({
+                type: "POST",
+                url: '/WMS/Master/AddProduct',
+                headers: {
+                    "Authorization": "Bearer " + getToken()  // ✅ 修复
+                },
+                data: {
+
+                    ITEMCODE: data.field.ITEMCODE,
+
+                    MINSTORAGE: data.field.MINSTORAGE
+                },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+                        hg.msghide("保存成功"); // ✅ 使用框架支持的提示
+                        // ✅ 再关闭弹窗
+                        setTimeout(function () {
+                            hg.close();
+                        }, 500);
+                        // ✅ 先刷新父页面
+                        parent.searchClick();
+                    }
+                    else {
+                        hg.msghide("添加失败"); 
+                        return false;
+                    }
+
+                },
+                error: function (data) {
+                    hg.msghide("添加失败"); 
+                    return false;
+                }
+            })
+        } else {
+            $.ajax({
+                type: "POST",
+                url: '/WMS/Master/EditProduct',
+                headers: {
+                    "Authorization": "Bearer " + getToken()  // ✅ 修复
+                },
+                data: {
+                    ID: data.field.ID,
+                    ITEMCODE: data.field.ITEMCODE,
+                    MINSTORAGE: data.field.MINSTORAGE
+                },
+                dataType: "json",
+                success: function (data) {
+                    if (data.result == true) {
+                        hg.msghide("保存成功"); // ✅ 使用框架支持的提示
+                        // ✅ 再关闭弹窗
+                        setTimeout(function () {
+                            hg.close();
+                        }, 500);
+                        // ✅ 先刷新父页面
+                        parent.searchClick();
+                    }
+                    else {
+                        hg.msghide("添加失败"); 
+                        return false;
+                    }
+
+                },
+                error: function (data) {
+                    hg.msghide("添加失败"); 
+                    return false;
+                }
+            })
+        }
+
+
+    }
+    //获取传过来的值
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null)
+            return decodeURI(r[2]);
+        return null;
+    }
+
+    //获取select数句
+
+    function getSelectZoneData(code, name) {
+        var data;
+        $.ajax({
+            type: "post",
+            url: '/WMS/Location/GetSearchSelectListByZone',
+            data: { code: code, name: name },
+            dataType: "json",
+            async: false,
+            success: function (d) {
+                data = d;
+            }
+        });
+        return data;
+    }
+
+</script>

@@ -1,0 +1,254 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+
+
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+            <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+            <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <form class="layui-form" action="" lay-filter="example">
+                <div class="layui-form-item">
+                    <label class="layui-form-label" style="color:red">
+                        页面名称
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="pageName" name="pageName" lay-verify="required" class="layui-input">
+                        <input type="hidden" name="id" id="id" lay-filter="Id" class="layui-input">
+                        <input type="hidden" name="ParentId" id="ParentId" lay-filter="ParentId" class="layui-input">
+                        <input type="hidden" name="ParentName" id="ParentName" lay-filter="ParentName" class="layui-input">
+                        <input type="hidden" name="NodeType" id="NodeType" lay-filter="ParentName" class="layui-input">
+                        <input type="hidden" id="typeflag" name="typeflag" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label" style="color:red">
+                        链接地址
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="linkurl" name="linkurl" lay-verify="required" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label" style="color:red">
+                        控制器
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="controller" name="controller" lay-verify="required" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label"  style="color:red">
+                        动作
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="text" id="action" name="action" lay-verify="required" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">
+                        是否启用
+                    </label>
+                    <div class="layui-input-block">
+                        <input type="checkbox" name="isEnabled" id="isEnabled" lay-skin="switch" lay-filter="switchTest" lay-text="启用|禁用">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label for="L_repass" class="layui-form-label"></label>
+                    <button class="layui-btn" lay-filter="add" lay-submit="">确定</button>
+                    <button class="layui-btn" onclick="cancelclick()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        layui.use(['form', 'layer', 'jquery'],
+            function () {
+                $ = layui.jquery;
+                var form = layui.form,
+                    layer = layui.layer;              
+                var typeflag = GetQueryString('typeflag');
+                //初始化控件
+                if (typeflag == 0) {
+                    var ParentId = GetQueryString('ParentId');
+                    var ParentName = GetQueryString('ParentName');
+                    var NodeType = GetQueryString('NodeType');                  
+
+                    form.val('example', {
+                        "linkurl": ""// "name": "value"
+                        , "typeflag": typeflag
+                        , "pageName": ""
+                        , "id": ""
+                        , "controller": ""
+                        , "action": ""      
+                        , "ParentId": ParentId        
+                        , "ParentName": ParentName        
+                        , "NodeType": NodeType      
+                    });
+                    $("input[name='isEnabled']").attr("checked", "checked");
+                    form.render();
+                   // form.render(checkbox);
+                     // $(" div em").val('禁用');
+                }
+                else {
+                    var id = GetQueryString('id');
+                    var pageName = GetQueryString('pageName');
+                    var linkurl = GetQueryString('linkurl');
+                    var controller = GetQueryString('controller');
+                    var action = GetQueryString('action');                 
+                    var IsEnabled = GetQueryString('IsEnabled');
+                    var NodeType = GetQueryString('NodeType');  
+                    if (IsEnabled == "1") {
+
+                        form.val('example', {
+                            "linkurl": linkurl// "name": "value"
+                            , "typeflag": typeflag
+                            , "pageName": pageName
+                            , "id": id
+                            , "controller": controller
+                            , "action": action                        
+                            , "ParentId": ""
+                            , "ParentName": ""
+                            , "NodeType": NodeType      
+                        });
+                        $("input[name='isEnabled']").attr("checked", "checked");                       
+                        form.render();
+
+                    } else {
+
+                        form.val('example', {
+                            "linkurl": linkurl// "name": "value"
+                            , "typeflag": typeflag
+                            , "pageName": pageName
+                            , "id": id
+                            , "controller": controller
+                            , "action": action                        
+                            , "ParentId": ""
+                            , "ParentName": ""
+                            , "NodeType": NodeType      
+                        });
+                        $("input[name='isEnabled']").removeAttr("checked");
+
+                        form.render();
+                       // form.render(checkbox);
+
+                    }
+
+
+
+                }
+
+
+                //监听提交
+                form.on('submit(add)',
+                    function (data) {
+                        saveGroupAction(data);
+
+                    });
+                return false;
+            });
+
+        //绑定取消按钮操作
+        function cancelclick() {
+            hg.close();
+        }      
+        //
+        //保存、编辑操作
+        function saveGroupAction(data) {
+            var isEnabled = 1;
+            if (typeof(data.field.isEnabled) == "undefined") {
+                isEnabled = 0;
+            }
+            if (data.field.typeflag == "0") {
+                $.ajax({
+                    type: "POST",
+                    url: '/Permission/AddPage',
+                    //NodeName: pageName, IsEnabled: isEnabled, ImageUrl: imageUrl_text, Icon: imageUrl_value, 
+                    //LinkUrl: linkurl, ControllerName: controller, ActionName: action, ParentId: parentId, ParentName: pageModularName, NodeType: nodeType
+                    data: { NodeName: data.field.pageName, IsEnabled: isEnabled, ImageUrl: "/images/log.png", Icon: "icon-log", LinkUrl: data.field.linkurl, ControllerName: data.field.controller, ActionName: data.field.action, ParentId: data.field.ParentId, ParentName: data.field.ParentName, NodeType: data.field.NodeType},
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg("添加成功" + data.message);
+                            hg.close();
+                            hg.base_reload();
+                        }
+                        else {
+                            hg.msg("添加失败:" + data.message);
+                            return false;
+                        }                          
+                    },
+                    error: function (data) {
+                        hg.msg("添加失败:" + data.message);
+                        return false;
+                    }
+                })
+            } else {
+                $.ajax({
+                    type: "POST",
+                    url: '/Permission/EditPage',
+                    data: { Id: data.field.id, NodeName: data.field.pageName, IsEnabled: isEnabled, ImageUrl: "/images/log.png", Icon: "icon-log", LinkUrl: data.field.linkurl, ControllerName: data.field.controller, ActionName: data.field.action, NodeType: data.field.NodeType },
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.result == true) {
+                            hg.msg("修改成功" + data.message);
+                            hg.close();
+                            hg.base_reload();
+                        }
+                        else {
+                            hg.msg("修改失败:" + data.message);
+                            return false;
+                        }
+                        
+
+                    },
+                    error: function (data) {
+                        hg.msg("修改失败:" + data.message);
+                        return false;
+                    }
+                })
+            }
+
+
+        }
+        //获取传过来的值
+        function GetQueryString(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null)
+                return decodeURI(r[2]);
+            return null;
+        }
+
+    </script>
+</body>
+
+</html>

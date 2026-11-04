@@ -1,0 +1,57 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core"#>
+<#@ assembly name="System.Data"#>
+<#@ assembly name="D:\workfiles\模板\WMS系统模板\PM1018\PM1018\packages\MySql.Data.6.9.12\lib\net45\MySql.Data.dll" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Data" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="MySql.Data.MySqlClient" #>
+<#@ output extension=".cs" #>
+
+using TR.DAL;
+using TR.IDAL;
+
+namespace TR.DalFactory
+{
+    public partial class DbSession : IDbSession
+    {
+<#
+    string connectionString = @"server=localhost;uid=root;pwd=root;database=jc0004;charset=utf8;";
+    string databaseName = "jc0004";
+    List<string> tables = GetAllTables(connectionString, databaseName);
+
+    foreach (string table in tables)
+    {
+#>
+        public I<#= table #>Dal Get<#= table #>Dal()
+        {
+            return new <#= table #>Dal();
+        }
+<#
+    }
+#>
+    }
+}
+
+<#+
+List<string> GetAllTables(string connString, string dbName)
+{
+    List<string> tables = new List<string>();
+    using (MySqlConnection conn = new MySqlConnection(connString))
+    {
+        conn.Open();
+        string sql = @"SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = @dbName AND TABLE_TYPE='BASE TABLE' ORDER BY TABLE_NAME";
+        MySqlCommand cmd = new MySqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@dbName", dbName);
+        using (var reader = cmd.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                tables.Add(reader["TABLE_NAME"].ToString());
+            }
+        }
+    }
+    return tables;
+}
+#>

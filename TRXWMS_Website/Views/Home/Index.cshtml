@@ -1,0 +1,370 @@
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>旺宏·WMS系统</title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+
+    <link rel="stylesheet" href="~/css/font.css">
+    <link href="~/fonts/iconfont.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+    <script src='~/lib/nprogress/nprogress.js'></script>
+    <link rel='stylesheet' href='~/lib/nprogress/nprogress.css' />
+
+    <style>
+        .logo img {
+            width: 160px;
+            height: 59px;
+            object-fit: contain;
+        }
+    </style>
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body class="layui-layout-body">
+    <div class="layui-layout layui-layout-admin">
+        <!-- 顶部 -->
+        <div class="layui-header">
+            <div class="logo">
+                <a href="javascript:;">
+                    <img src="~/images/jclogo.jpg">
+                    <span class="xs-hide">旺宏·综合物流管理系统</span>
+                </a>
+            </div>
+            <ul id="navtop" class="layui-nav left" lay-filter="nav-top"></ul>
+            <ul class="layui-nav right xs-hide">
+                <li class="layui-nav-item" lay-unselect>
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <i class="layui-icon layui-icon-friends" style=" color:white;"></i>
+                        <span id="showTrueName"></span>
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd lay-unselect>
+                            <a onclick="hg.add_tab('修改密码','/Home/ChangPwd')">
+                                <i class="iconfont">&#xe621;</i>修改密码
+                            </a>
+                        </dd>
+                        <dd lay-unselect><a href="javascript:logout();"><i class="iconfont">&#xe615;</i>退出</a></dd>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 左侧菜单 -->
+        <div class="layui-left-nav xs-left-nav scrollBox">
+            <div id="side-nav">
+                <i class="layui-anim layui-anim-rotate layui-icon layui-icon-loading" style="font-size:24px;color:#aaa;"></i>
+            </div>
+        </div>
+
+        <!-- 内容 -->
+        <div class="layui-page-content">
+            <div class="layui-tab tab" lay-unauto lay-allowClose="true" lay-filter="xbs_tab">
+                <div class="indent-tab right layui-icon layui-icon-next"></div>
+                <ul class="layui-tab-title">
+                    <li class="home layui-this"><i class="layui-icon">&#xe68e;</i></li>
+                </ul>
+                <div class="layui-tab-content">
+                    <div class="layui-tab-item layui-show">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==============================================
+        // 【必须放在最前面！】先定义获取 token 方法
+        // ==============================================
+        function getCurrentToken() {
+            var tabId = sessionStorage.tabId;
+            if (!tabId) return null;
+
+            var urlParams = new URLSearchParams(window.location.search);
+            var t = urlParams.get('token');
+            if (t) return t;
+
+            return localStorage.getItem("TOKEN_" + tabId);
+        }
+
+        function getCurrentTrueName() {
+            var tabId = sessionStorage.tabId;
+            if (!tabId) return "";
+            return localStorage.getItem("TRUENAME_" + tabId);
+        }
+
+        // ==============================================
+        // 【必须第二步】全局 AJAX 配置（最先加载）
+        // ==============================================
+        $.ajaxSetup({
+            beforeSend: function (xhr) {
+                var token = getCurrentToken();
+                if (token) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                }
+            }
+        });
+
+        /^http(s*):\/\//.test(location.href) || alert('请先部署到 localhost 下再访问');
+
+        // ==============================================
+        // 【最后一步】再加载菜单、用户名
+        // ==============================================
+        $(function () {
+            // 先确保 token 存在再加载菜单
+            var token = getCurrentToken();
+            if (!token) {
+                // 没有 token 直接跳回登录页，防止空白页
+                location.href = "/Login/Index";
+                return;
+            }
+
+            $('#showTrueName').text(getCurrentTrueName() || '未登录');
+            InitMenus();
+        });
+        function InitMenus() {
+            $.ajax({
+                url: "/Home/GetPermissionData",
+                type: "get",
+                dataType: "json",
+                success: function (result) {
+                    RenderTopMenu(result);
+                    RenderLeftMenu(result);
+                },
+                error: function () { }
+            });
+        }
+
+        function RenderLeftMenu(result) {
+                    $('#side-nav').html('');
+                    if (!result || !result.menus || !Array.isArray(result.menus)) {
+                        return;
+                    }
+
+                    const _menus = result;
+                    var menulist = '';
+                    var permissionlist = '';
+                    var meslist = '';
+                    var wmslist = '';
+                    var wcslist = '';
+                    var modelstartlist = "<ul id='nav' class='layui-tab-item '>";
+                    var showmodelstartlist = "<ul id='nav' class='layui-tab-item layui-show '>";
+
+                    $.each(_menus.menus, function (i, n) {
+                        if (n.NodeType == "Permission") {
+                            permissionlist += "<li>";
+                            // 🔥 修复：去掉写死 active，去掉 display:block
+                            permissionlist += '<a class="border"> <i class="iconfont">&#xe623;</i><cite>' + n.menuname + '</cite><i class="iconfont nav_right">&#xe609;</i></a> ';
+                            permissionlist += "  <ul class='sub-menu'>"; // 关键：去掉 style='display: block;'
+                            if (n.menus && Array.isArray(n.menus)) {
+                                $.each(n.menus, function (j, o) {
+                                    permissionlist += `
+                                <li class="sub-tab">
+                                    <a onclick="addTab('${o.menuname}', '${o.url}?pageId=${o.menuid}')">
+                                        <i class="iconfont">&#xe6ac;</i><cite>${o.menuname}</cite>
+                                    </a>
+                                </li>`;
+                                });
+                            }
+                            permissionlist += '</ul></li>';
+                        }
+                        if (n.NodeType == "竞标系统") {
+                            meslist += "<li>";
+                            // 🔥 修复：去掉 open、active、写死展开
+                            meslist += '<a class="border"> <i class="iconfont">&#xe623;</i><cite>' + n.menuname + '</cite><i class="iconfont nav_right">&#xe609;</i></a> ';
+                            meslist += "  <ul class='sub-menu'>"; // 关键：去掉 style='display: block;'
+                            if (n.menus && Array.isArray(n.menus)) {
+                                $.each(n.menus, function (j, o) {
+                                    meslist += `
+                                <li class="sub-tab">
+                                    <a onclick="addTab('${o.menuname}', '${o.url}?pageId=${o.menuid}')">
+                                        <i class="iconfont">&#xe6ac;</i><cite>${o.menuname}</cite>
+                                    </a>
+                                </li>`;
+                                });
+                            }
+                            meslist += '</ul></li>';
+                        }
+                        if (n.NodeType == "WMS") {
+                            wmslist += "<li>";
+                            // 🔥 修复：去掉多余 active
+                            wmslist += '<a class="border"> <i class="iconfont">&#xe623;</i><cite>' + n.menuname + '</cite><i class="iconfont nav_right">&#xe609;</i></a> ';
+                            wmslist += "  <ul class='sub-menu' >";
+                            if (n.menus && Array.isArray(n.menus)) {
+                                $.each(n.menus, function (j, o) {
+                                    wmslist += `
+                                <li class="sub-tab">
+                                    <a onclick="addTab('${o.menuname}', '${o.url}?pageId=${o.menuid}')">
+                                        <i class="iconfont">&#xe6ac;</i><cite>${o.menuname}</cite>
+                                    </a>
+                                </li>`;
+                                });
+                            }
+                            wmslist += '</ul></li>';
+                        }
+                        if (n.NodeType == "WCS") {
+                            wcslist += "<li>";
+                            // 🔥 修复：去掉多余 active
+                            wcslist += '<a class="border"> <i class="iconfont">&#xe623;</i><cite>' + n.menuname + '</cite><i class="iconfont nav_right">&#xe609;</i></a> ';
+                            wcslist += "  <ul class='sub-menu' >";
+                            if (n.menus && Array.isArray(n.menus)) {
+                                $.each(n.menus, function (j, o) {
+                                    wcslist += `
+                                <li class="sub-tab">
+                                    <a onclick="addTab('${o.menuname}', '${o.url}?pageId=${o.menuid}')">
+                                        <i class="iconfont">&#xe6ac;</i><cite>${o.menuname}</cite>
+                                    </a>
+                                </li>`;
+                                });
+                            }
+                            wcslist += '</ul></li>';
+                        }
+                    });
+
+                    var modelendlist = '</ul>';
+                    if (permissionlist != "") {
+                        menulist += showmodelstartlist + permissionlist + modelendlist;
+                    }
+                    if (meslist != "") {
+                        menulist += (menulist != "" ? modelstartlist : showmodelstartlist) + meslist + modelendlist;
+                    }
+                    if (wmslist != "") {
+                        menulist += (menulist != "" ? modelstartlist : showmodelstartlist) + wmslist + modelendlist;
+                    }
+                    if (wcslist != "") {
+                        menulist += (menulist != "" ? modelstartlist : showmodelstartlist) + wcslist + modelendlist;
+                    }
+
+                    $('#side-nav').html(menulist);
+                    layui.element.init();
+
+                    // ==============================================
+                    // 🔥 新增：左侧菜单点击折叠/展开功能（不影响任何原有逻辑）
+                    // ==============================================
+                    $(document).off('click', '#side-nav .sub-menu').on('click', '#side-nav .border', function (e) {
+                        e.preventDefault();
+                        var $a = $(this);
+                        var $sub = $a.next('.sub-menu');
+                        var $icon = $a.find('.nav_right');
+
+                        // 折叠/展开切换
+                        $sub.slideToggle(200);
+
+                        // 箭头旋转动画
+                        $icon.toggleClass('layui-anim-rotate');
+                    });
+        }
+
+        function RenderTopMenu(result) {
+            $('#navtop').html('');
+            if (!result || !result.menus || !Array.isArray(result.menus)) {
+                return;
+            }
+
+            const _menus = result;
+            var menulist = '';
+            var permissionlist = false;
+            var meslist = false;
+            var wmslist = false;
+            var wcslist = false;
+
+            $.each(_menus.menus, function (i, n) {
+                if (n.NodeType == "Permission") permissionlist = true;
+                if (n.NodeType == "竞标系统") meslist = true;
+                if (n.NodeType == "WMS") wmslist = true;
+                if (n.NodeType == "WCS") wcslist = true;
+            });
+
+            var meunid = 0;
+            if (permissionlist) {
+                menulist += '<li meun_id = "' + meunid + '"  class="layui-nav-item "><a href="javascript:;"><i  class="layui-icon">&#xe614;</i>&nbsp;权限管理</a></li>';
+                meunid++;
+            }
+            if (meslist) {
+                menulist += '<li meun_id = "' + meunid + '" class="layui-nav-item "><a href="javascript:;"><i  class="layui-icon">&#xe631;</i>&nbsp;竞标系统</a></li>';
+                meunid++;
+            }
+            if (wmslist) {
+                menulist += '<li meun_id = "' + meunid + '" class="layui-nav-item "><a href="javascript:;"><i  class="layui-icon">&#xe68e;</i>&nbsp;WMS管理</a></li>';
+                meunid++;
+            }
+            if (wcslist) {
+                menulist += '<li meun_id = "' + meunid + '" class="layui-nav-item "><a href="javascript:;"><i  class="layui-icon">&#xe620;</i>&nbsp;WCS管理</a></li>';
+            }
+
+            $('#navtop').html(menulist);
+        }
+
+        layui.use('element', function () { });
+
+        // 打开页面（终极修复版，永远不丢token、不重复打开）
+        function addTab(title, url) {
+            var element = layui.element;
+            var $ = layui.jquery;
+
+            // 🔥 强制获取最新 token（永远有效）
+            var token = getCurrentToken();
+            if (!token) {
+                window.top.location.href = "/Login/Index";
+                return;
+            }
+
+            // 🔥 强制统一 URL格式：保证 pageId 和 token 永远存在
+            var baseUrl = url.split('?')[0];
+            var params = new URLSearchParams(url.split('?')[1] || '');
+            params.set('token', token); // 强制带token
+
+            // 最终固定URL
+            var fixedUrl = baseUrl + '?' + params.toString();
+
+            // 判断是否已存在
+            var isExist = false;
+            $('.layui-tab-title li').each(function () {
+                if ($(this).attr('lay-id') === fixedUrl) {
+                    isExist = true;
+                    element.tabChange('xbs_tab', fixedUrl);
+                    return false;
+                }
+            });
+
+            if (!isExist) {
+                element.tabAdd('xbs_tab', {
+                    title: title,
+                    content: '<iframe src="' + fixedUrl + '" frameborder="0" scrolling="yes" class="hg-iframe"></iframe>',
+                    id: fixedUrl
+                });
+                element.tabChange('xbs_tab', fixedUrl);
+            }
+        }
+       
+        function logout() {
+            var tabId = sessionStorage.tabId;
+            if (tabId) {
+                localStorage.removeItem("TOKEN_" + tabId);
+                localStorage.removeItem("TRUENAME_" + tabId);
+            }
+            location.href = "/Login/Index";
+        }
+    </script>
+</body>
+</html>

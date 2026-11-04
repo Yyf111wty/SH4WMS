@@ -1,0 +1,366 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>库位矩阵 - Canvas</title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <style>
+        body { background: #f2f2f2; }
+        .toolbar { padding: 12px 16px; background: #fff; border-bottom: 1px solid #e8e8e8; }
+        .toolbar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+        .toolbar-row + .toolbar-row { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #f0f0f0; }
+        .filter-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .filter-group > label { white-space: nowrap; color: #666; font-size: 13px; margin: 0; }
+        .filter-group select { height: 32px; line-height: 32px; border: 1px solid #e6e6e6; border-radius: 2px; padding: 0 8px; }
+        .filter-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .filter-actions-right { margin-left: auto; flex-shrink: 0; }
+        .toolbar-hint { margin-top: 8px; color: #999; font-size: 12px; line-height: 1.5; }
+        .stats-bar { display: flex; flex-wrap: wrap; gap: 16px; padding: 10px 16px; background: #fafafa; border-bottom: 1px solid #eee; font-size: 13px; }
+        .stats-bar span b { color: #333; }
+        .legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 8px 16px; background: #fff; border-bottom: 1px solid #eee; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-color { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(0,0,0,.08); }
+        .main-wrap { display: flex; height: calc(100vh - 260px); min-height: 420px; }
+        .canvas-wrap { flex: 1; overflow: auto; background: #fff; position: relative; padding: 8px 0; }
+        #matrixCanvas { display: block; cursor: crosshair; }
+        .detail-panel { width: 280px; border-left: 1px solid #e8e8e8; background: #fff; padding: 16px; overflow-y: auto; }
+        .detail-panel h4 { margin: 0 0 12px; font-size: 15px; }
+        .detail-row { margin-bottom: 8px; font-size: 13px; color: #666; }
+        .detail-row label { display: inline-block; width: 72px; color: #999; }
+        .detail-empty { color: #bbb; text-align: center; padding-top: 80px; }
+        .filter-input { width: 58px; }
+        .filter-range { display: flex; align-items: center; gap: 4px; }
+        .filter-range span { color: #999; font-size: 12px; }
+        .tunnel-select { width: 118px; }
+        .canvas-tip { position: fixed; pointer-events: none; background: rgba(0,0,0,.78); color: #fff; padding: 4px 8px; border-radius: 3px; font-size: 12px; display: none; z-index: 999; white-space: nowrap; }
+    </style>
+</head>
+<body>
+    <div class="toolbar layui-form">
+        <div class="toolbar-row">
+            <div class="filter-group">
+                <label>巷道</label>
+                <select id="tunnelNum" class="tunnel-select">
+                    <option value="1" selected>1 (1-2排)</option>
+                    <option value="2">2 (3-4排)</option>
+                    <option value="3">3 (5-6排)</option>
+                    <option value="4">4 (7-8排)</option>
+                </select>
+            </div>
+            <span class="toolbar-hint" style="margin:0;">排留空时按巷道筛选</span>
+        </div>
+        <div class="toolbar-row">
+            <div class="filter-group">
+                <label>排</label>
+                <div class="filter-range">
+                    <input type="number" id="rowMin" class="layui-input filter-input" placeholder="最小" min="1" max="8">
+                    <span>~</span>
+                    <input type="number" id="rowMax" class="layui-input filter-input" placeholder="最大" min="1" max="8">
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>列</label>
+                <div class="filter-range">
+                    <input type="number" id="columnMin" class="layui-input filter-input" placeholder="最小" min="1" max="144">
+                    <span>~</span>
+                    <input type="number" id="columnMax" class="layui-input filter-input" placeholder="最大" min="1" max="144">
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="layui-btn layui-btn-sm" id="btnSearch">查询</button>
+                <button class="layui-btn layui-btn-primary layui-btn-sm" id="btnReset">重置</button>
+            </div>
+            <div class="filter-actions-right">
+                <button class="layui-btn layui-btn-sm" id="btnRefresh">刷新</button>
+            </div>
+        </div>
+        <div class="toolbar-hint">Y轴=层(高→低) X轴=列；填写排范围时将忽略巷道；列留空为 1-144</div>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+        <span>视图 <b id="viewTitle">-</b></span>
+        <span>总计 <b id="stTotal">-</b></span>
+        <span>空闲 <b id="stEmpty" style="color:#52c41a">-</b></span>
+        <span>占用 <b id="stOccupied" style="color:#1890ff">-</b></span>
+        <span>入库 <b id="stInbound" style="color:#fa8c16">-</b></span>
+        <span>出库 <b id="stOutbound" style="color:#722ed1">-</b></span>
+        <span>禁用 <b id="stDisabled" style="color:#bfbfbf">-</b></span>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><span class="legend-color" style="background:#52c41a"></span>空闲</div>
+        <div class="legend-item"><span class="legend-color" style="background:#1890ff"></span>占用</div>
+        <div class="legend-item"><span class="legend-color" style="background:#fa8c16"></span>入库占用</div>
+        <div class="legend-item"><span class="legend-color" style="background:#722ed1"></span>出库占用</div>
+        <div class="legend-item"><span class="legend-color" style="background:#bfbfbf"></span>禁用</div>
+        <div class="legend-item"><span class="legend-color" style="background:#f5f5f5"></span>无数据</div>
+    </div>
+
+    <div class="main-wrap">
+        <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="matrixCanvas"></canvas>
+        </div>
+        <div class="detail-panel">
+            <h4>库位详情</h4>
+            <div id="detailContent" class="detail-empty">点击矩阵中的单元格查看详情</div>
+        </div>
+    </div>
+    <div id="canvasTip" class="canvas-tip"></div>
+
+<script>
+layui.use(['form', 'layer'], function () {
+    var form = layui.form, layer = layui.layer;
+    var STATUS_COLOR = { 0: '#f5f5f5', 1: '#52c41a', 2: '#1890ff', 3: '#fa8c16', 4: '#722ed1', 5: '#bfbfbf' };
+    var STATUS_NAME = { 0: '无数据', 1: '空闲', 2: '占用', 3: '入库占用', 4: '出库占用', 5: '禁用' };
+    var CELL = 18, GAP = 2, LABEL_H = 24, LABEL_W = 40;
+    var TITLE_H = 28, BLOCK_GAP = 20;
+    var MAX_ROW = 8, MAX_COL = 144;
+    var maxLayer = 17, colStart = 1, colEnd = 144, displayRows = [];
+    var cellMap = {};
+    var rowLayouts = [];
+    var canvas = document.getElementById('matrixCanvas');
+    var ctx = canvas.getContext('2d');
+    var tip = document.getElementById('canvasTip');
+
+    function parseOptionalInt(val) {
+        if (val === '' || val == null) return 0;
+        var n = parseInt(val, 10);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function validateRange(label, min, max, boundMin, boundMax) {
+        var hasMin = min > 0, hasMax = max > 0;
+        if (!hasMin && !hasMax) return null;
+        if (!hasMin) min = max;
+        if (!hasMax) max = min;
+        if (min < boundMin || max > boundMax) {
+            return label + '范围必须在 ' + boundMin + '-' + boundMax + ' 之间';
+        }
+        if (min > max) {
+            return label + '最小值不能大于最大值';
+        }
+        return null;
+    }
+
+    function getFilterParams() {
+        return {
+            rowMin: parseOptionalInt($('#rowMin').val()),
+            rowMax: parseOptionalInt($('#rowMax').val()),
+            columnMin: parseOptionalInt($('#columnMin').val()),
+            columnMax: parseOptionalInt($('#columnMax').val()),
+            tunnelNum: parseInt($('#tunnelNum').val(), 10) || 1
+        };
+    }
+
+    function layerAtIndex(index) {
+        return maxLayer - index;
+    }
+
+    function cellKey(row, layer, col) {
+        return row + '_' + layer + '_' + col;
+    }
+
+    function updateStats(stats, rows, data) {
+        if (!stats) return;
+        var title;
+        if (data.rowMin > 0 || data.rowMax > 0) {
+            title = '第' + data.rowMin + '-' + data.rowMax + '排';
+        } else {
+            title = '巷道' + data.tunnelNum + ' / 第' + rows.join('、') + '排';
+        }
+        title += ' / 层L' + (data.maxLayer || maxLayer) + '-L1';
+        if (data.columnMin > 1 || data.columnMax < MAX_COL) {
+            title += ' / 列' + data.columnMin + '-' + data.columnMax;
+        }
+        $('#viewTitle').text(title);
+        $('#stTotal').text(stats.total);
+        $('#stEmpty').text(stats.empty);
+        $('#stOccupied').text(stats.occupied);
+        $('#stInbound').text(stats.inbound);
+        $('#stOutbound').text(stats.outbound);
+        $('#stDisabled').text(stats.disabled);
+    }
+
+    function loadMatrix() {
+        var params = getFilterParams();
+        var err = validateRange('排', params.rowMin, params.rowMax, 1, MAX_ROW);
+        if (err) return layer.msg(err);
+        err = validateRange('列', params.columnMin, params.columnMax, 1, MAX_COL);
+        if (err) return layer.msg(err);
+
+        layer.load(1);
+        $.getJSON('/WMS/LocationMap/GetRowMatrix', params, function (res) {
+            layer.closeAll('loading');
+            if (!res.success) return layer.msg(res.message || '加载失败');
+            maxLayer = res.data.maxLayer || 17;
+            colStart = res.data.columnMin || 1;
+            colEnd = res.data.columnMax || MAX_COL;
+            displayRows = res.data.rows || [];
+            updateStats(res.data.stats, displayRows, res.data);
+            cellMap = {};
+            $.each(res.data.cells, function (_, c) {
+                cellMap[cellKey(c.row, c.layer, c.col)] = c;
+            });
+            buildLayouts();
+            drawMatrix();
+        });
+    }
+
+    function buildLayouts() {
+        var colCount = colEnd - colStart + 1;
+        var blockH = TITLE_H + LABEL_H + maxLayer * (CELL + GAP) + GAP;
+        var y = 0;
+        rowLayouts = [];
+
+        $.each(displayRows, function (_, row) {
+            rowLayouts.push({
+                row: row,
+                y: y,
+                colStart: colStart,
+                colEnd: colEnd,
+                colCount: colCount,
+                height: blockH
+            });
+            y += blockH + BLOCK_GAP;
+        });
+    }
+
+    function drawMatrix() {
+        if (rowLayouts.length === 0) return;
+        var params = getFilterParams();
+        var colCount = rowLayouts[0].colCount;
+        var w = LABEL_W + colCount * (CELL + GAP) + GAP;
+        var h = rowLayouts[rowLayouts.length - 1].y + rowLayouts[rowLayouts.length - 1].height;
+        canvas.width = w;
+        canvas.height = h;
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = '11px Arial';
+
+        $.each(rowLayouts, function (_, block) {
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'left';
+            ctx.fillText('第 ' + block.row + ' 排（层 × 列）', 4, block.y + 18);
+
+            var matrixTop = block.y + TITLE_H;
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'center';
+            for (var c = block.colStart; c <= block.colEnd; c++) {
+                if ((c - block.colStart) % 8 !== 0 && c !== block.colEnd) continue;
+                var x = LABEL_W + (c - block.colStart) * (CELL + GAP) + CELL / 2;
+                ctx.fillText(c, x, matrixTop + 14);
+            }
+
+            ctx.textAlign = 'right';
+            for (var li = 0; li < maxLayer; li++) {
+                var layer = layerAtIndex(li);
+                var y = matrixTop + LABEL_H + li * (CELL + GAP) + CELL / 2 + 4;
+                ctx.fillText('L' + layer, LABEL_W - 6, y);
+            }
+
+            for (var li = 0; li < maxLayer; li++) {
+                var layer = layerAtIndex(li);
+                for (var col = block.colStart; col <= block.colEnd; col++) {
+                    var item = cellMap[cellKey(block.row, layer, col)];
+                    var status = item ? item.s : 0;
+                    var x = LABEL_W + (col - block.colStart) * (CELL + GAP);
+                    var y = matrixTop + LABEL_H + li * (CELL + GAP);
+                    ctx.fillStyle = STATUS_COLOR[status] || '#f5f5f5';
+                    ctx.fillRect(x, y, CELL, CELL);
+                    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+                    ctx.strokeRect(x, y, CELL, CELL);
+                }
+            }
+        });
+    }
+
+    function hitTest(mx, my) {
+        for (var i = 0; i < rowLayouts.length; i++) {
+            var block = rowLayouts[i];
+            var matrixTop = block.y + TITLE_H;
+            if (my < matrixTop || my > matrixTop + LABEL_H + maxLayer * (CELL + GAP)) continue;
+            var col = Math.floor((mx - LABEL_W) / (CELL + GAP)) + block.colStart;
+            var li = Math.floor((my - matrixTop - LABEL_H) / (CELL + GAP));
+            var layer = layerAtIndex(li);
+            if (col >= block.colStart && col <= block.colEnd && li >= 0 && li < maxLayer) {
+                return { row: block.row, layer: layer, col: col, item: cellMap[cellKey(block.row, layer, col)] };
+            }
+        }
+        return null;
+    }
+
+    function showDetail(id) {
+        if (!id) return;
+        $.getJSON('/WMS/LocationMap/GetCellDetail', { id: id }, function (res) {
+            if (!res.success) return layer.msg(res.message);
+            var d = res.data;
+            var html = ''
+                + '<div class="detail-row"><label>库位号</label>' + d.LOCATIONCODE + '</div>'
+                + '<div class="detail-row"><label>库区</label>' + (d.ZONECODE || '-') + '</div>'
+                + '<div class="detail-row"><label>状态</label><span style="color:' + (STATUS_COLOR[d.status] || '#333') + '">' + d.statusName + '</span></div>'
+                + '<div class="detail-row"><label>排/列/层</label>' + d.ROWNUM + ' / ' + d.COLUMNNUM + ' / ' + d.LAYERNUM + '</div>'
+                + '<div class="detail-row"><label>巷道</label>' + d.TUNNELNUM + '</div>'
+                + '<div class="detail-row"><label>托盘</label>' + (d.CONTAINER || '-') + '</div>'
+                + '<div class="detail-row"><label>单据</label>' + (d.SOURCEORDER || '-') + '</div>'
+                + '<div class="detail-row"><label>激活</label>' + (d.ENABLED == 1 ? '已激活' : '未激活') + '</div>';
+            $('#detailContent').html(html);
+        });
+    }
+
+    canvas.addEventListener('mousemove', function (e) {
+        var rect = canvas.getBoundingClientRect();
+        var hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+        if (hit) {
+            tip.style.display = 'block';
+            tip.style.left = (e.clientX + 12) + 'px';
+            tip.style.top = (e.clientY + 12) + 'px';
+            tip.innerHTML = hit.item
+                ? ('<b>' + hit.item.lc + '</b> ' + STATUS_NAME[hit.item.s] + (hit.item.ct ? ' | ' + hit.item.ct : ''))
+                : ('第' + hit.row + '排 L' + hit.layer + '-列' + hit.col + ' 无数据');
+        } else {
+            tip.style.display = 'none';
+        }
+    });
+    canvas.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+    canvas.addEventListener('click', function (e) {
+        var rect = canvas.getBoundingClientRect();
+        var hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+        if (hit && hit.item) showDetail(hit.item.id);
+    });
+
+    $('#btnSearch, #btnRefresh').on('click', loadMatrix);
+    $('#btnReset').on('click', function () {
+        $('#rowMin, #rowMax, #columnMin, #columnMax').val('');
+        $('#tunnelNum').val('1').prop('disabled', false);
+        form.render('select');
+        loadMatrix();
+    });
+
+    function toggleTunnelByRowRange() {
+        var hasRow = $('#rowMin').val() !== '' || $('#rowMax').val() !== '';
+        $('#tunnelNum').prop('disabled', hasRow);
+        form.render('select');
+    }
+
+    $('#rowMin, #rowMax').on('change input', toggleTunnelByRowRange);
+
+    form.render('select');
+    loadMatrix();
+});
+</script>
+</body>
+</html>

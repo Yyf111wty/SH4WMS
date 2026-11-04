@@ -1,0 +1,165 @@
+@{
+    Layout = null;
+    var orderId = ViewBag.OrderId as string ?? "";
+    var skuSeq = ViewBag.SkuSeq ?? 0;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>规格托盘明细</title>
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
+    <script src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script src="~/lib/layui/layui.js"></script>
+    <script src="~/Scripts/formattodata.js"></script>
+    <style>
+        body { padding: 12px; background: #fff; }
+        .meta-bar { margin-bottom: 12px; padding: 10px; background: #f8f8f8; border-radius: 4px; font-size: 13px; }
+        .meta-bar b { color: #1E9FFF; }
+        .status-abnormal { color: #FF5722; }
+        .type-replacement { color: #FFB800; }
+        .btn-force-abnormal {
+            background: #FF5722 !important;
+            background-color: #FF5722 !important;
+            border: 1px solid #E64A19 !important;
+            color: #fff !important;
+        }
+        .btn-force-abnormal:hover {
+            background: #E64A19 !important;
+            background-color: #E64A19 !important;
+            border-color: #D84315 !important;
+            color: #fff !important;
+            opacity: 1 !important;
+        }
+        .layui-table .btn-force-abnormal {
+            background: #FF5722 !important;
+            background-color: #FF5722 !important;
+            border: 1px solid #E64A19 !important;
+            color: #fff !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="meta-bar" id="metaBar">加载中...</div>
+    <table id="trayTable" lay-filter="trayTable"></table>
+
+    <script type="text/html" id="colState">
+        {{# if(d.State === 5){ }}<span class="status-abnormal">{{ d.StateText }}</span>
+        {{# } else { }}{{ d.StateText }}{{# } }}
+    </script>
+
+    <script type="text/html" id="colType">
+        {{# if(d.TrayType === '换料补配'){ }}<span class="type-replacement">{{ d.TrayType }}</span>
+        {{# } else { }}{{ d.TrayType }}{{# } }}
+    </script>
+
+    <script type="text/html" id="colActions">
+        {{# if(!d.ReadOnly && d.CanMarkAbnormal){ }}
+        <button class="layui-btn layui-btn-xs btn-force-abnormal" lay-event="abnormal">强制异常</button>
+        {{# } }}
+        {{# if(!d.ReadOnly && d.CanSwap){ }}
+        <button class="layui-btn layui-btn-xs layui-btn-normal" lay-event="swap">换料</button>
+        {{# } }}
+        {{# if(!d.ReadOnly && d.State === 5 && !d.CanSwap && (d.AlreadySwappedOut || d.alreadySwappedOut)){ }}
+        <span class="layui-badge layui-bg-gray">已换料</span>
+        {{# } }}
+        {{# if(d.ReadOnly || (!d.CanMarkAbnormal && !d.CanSwap && !(d.State === 5 && (d.AlreadySwappedOut || d.alreadySwappedOut)))){ }}
+        <span style="color:#999;">-</span>
+        {{# } }}
+    </script>
+
+    <script>
+        layui.use(['table', 'layer'], function () {
+            var table = layui.table;
+            var layer = layui.layer;
+            var $ = layui.$;
+
+            function getQuery(name) {
+                var match = location.search.match(new RegExp('[?&]' + name + '=([^&]*)'));
+                return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : '';
+            }
+
+            var orderId = getQuery('orderId');
+            var skuSeq = parseInt(getQuery('skuSeq'), 10) || 0;
+
+            function loadTrays() {
+                $.get('/WMS/SmallDrillWorkOrder/GetSpecTrays', { orderId: orderId, skuSeq: skuSeq }, function (res) {
+                    if (!res || !res.success || !res.data) {
+                        layer.msg((res && res.msg) || '加载失败');
+                        return;
+                    }
+                    var d = res.data;
+                    var execTag = d.IsCurrentExecutingSpec ? '<b>（当前执行规格，可操作）</b>' : '';
+                    var roTag = d.ReadOnly ? '<span class="status-abnormal">只读</span>' : execTag;
+                    $('#metaBar').html(
+                        '工单：<b>' + (d.Workname || '') + '</b> / ' + d.OrderId +
+                        ' &nbsp; 规格 #' + d.SkuSeq + ' ' + (d.Spec || '') +
+                        ' &nbsp; 有效 <b>' + d.ActiveQty + '/' + d.DemandQty + '</b> ' + roTag
+                    );
+
+                    table.render({
+                        elem: '#trayTable',
+                        data: d.Trays || [],
+                        page: false,
+                        limit: 500,
+                        cols: [[
+                            { field: 'Container', title: '容器号', minWidth: 140 },
+                            { field: 'Spec', title: '规格', minWidth: 160 },
+                            { title: '状态', width: 90, templet: '#colState' },
+                            { title: '类型', width: 100, templet: '#colType' },
+                            { field: 'ReplacedContainer', title: '替换原盒', width: 130 },
+                            { field: 'RootContainer', title: '根盒', width: 110, templet: function (d) {
+                                return d.RootContainer || d.rootContainer || d.ReplacedContainer || d.replacedContainer || '';
+                            } },
+                            { field: 'LocationCode', title: '库位', width: 110 },
+                            { field: 'CreateTime', title: '创建时间', width: 170, templet: function (d) {
+                                var val = d.CreateTime || d.createTime;
+                                if (!val) return '';
+                                if (typeof val === 'string' && val.indexOf('/Date(') >= 0) return FormatToDate(val);
+                                return val;
+                            } },
+                            { title: '操作', width: 160, toolbar: '#colActions', fixed: 'right' }
+                        ]]
+                    });
+                });
+            }
+
+            table.on('tool(trayTable)', function (obj) {
+                var row = obj.data;
+                if (obj.event === 'abnormal') {
+                    layer.prompt({
+                        title: '强制异常：' + row.Container,
+                        formType: 2,
+                        value: row.State === 2 ? '已到站台无法装盘' : '在库托盘异常'
+                    }, function (reason, index) {
+                        layer.close(index);
+                        $.post('/WMS/SmallDrillWorkOrder/MarkTrayAbnormal', {
+                            orderId: orderId,
+                            skuSeq: skuSeq,
+                            container: row.Container,
+                            reason: reason
+                        }, function (res) {
+                            layer.msg(res.msg || '');
+                            if (res.success) loadTrays();
+                        });
+                    });
+                } else if (obj.event === 'swap') {
+                    layer.confirm('确认为异常盒 ' + row.Container + ' 补配新托盘？', function (idx) {
+                        layer.close(idx);
+                        $.post('/WMS/SmallDrillWorkOrder/SwapTray', {
+                            orderId: orderId,
+                            skuSeq: skuSeq,
+                            container: row.Container
+                        }, function (res) {
+                            layer.msg(res.msg || '');
+                            if (res.success) loadTrays();
+                        });
+                    });
+                }
+            });
+
+            loadTrays();
+        });
+    </script>
+</body>
+</html>
