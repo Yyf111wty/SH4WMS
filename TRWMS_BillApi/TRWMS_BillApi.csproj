@@ -248,6 +248,7 @@
     <Compile Include="BILL\PrepareMachine\QrCodeUpdateService.cs" />
     <Compile Include="BILL\WCS\ISmallDrillWorkOrderService.cs" />
     <Compile Include="BILL\WCS\SmallDrillWorkOrderService.cs" />
+    <Compile Include="BILL\WCS\NeedleService.cs" />
     <Compile Include="BILL\WCS\WCSService.cs" />
     <Compile Include="BILL\WMS\WMSService.cs" />
     <Compile Include="Connected Services\ServiceReference1\Reference.cs">

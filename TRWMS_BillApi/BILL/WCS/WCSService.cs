@@ -2809,6 +2809,20 @@ WHERE HEADERID=@HEADERID   ";
 
                                  new SugarParameter("@HEADERID",headid)
                 });
+
+                        // ===== 单针改造：入库完成，本盒针 INBOUND_PENDING→AVAILABLE（历史盒无针数据自动跳过，返回 0） =====
+                        // needleQty = 本盒实际翻转针数，用于同步库存台账 QTY 与入库单明细 QTY
+                        int needleQty = NeedleService.MarkInboundComplete(dbcontext.Db, container, "WCS");
+                        if (needleQty > 0)
+                        {
+                            // 同步入库单明细 QTY = 盒内实际针数
+                            dbcontext.Db.Ado.ExecuteCommand("UPDATE wms_bill_putinbindingbody SET QTY=@QTY, LASTEDITTIME=sysdate() WHERE HEADERID=@HEADERID",
+                                new List<SugarParameter>() {
+                                    new SugarParameter("@QTY", needleQty),
+                                    new SugarParameter("@HEADERID", headid)
+                                });
+                        }
+
                         //若有明细则添加
                         if (bodylist != null && bodylist.Rows.Count > 0)
                         {
@@ -2821,10 +2835,11 @@ WHERE HEADERID=@HEADERID   ";
                                 string LOT = dr["LOT"].ToString();
                                 string TASK_NO_SN = dr["TASK_NO_SN"].ToString();
                                 //string QTY = dr["QTY"].ToString();
+                                // ===== 单针改造：库存台账 QTY 写入本盒实际针数（needleQty=0 为历史盒，QTY 维持 NULL 与旧行为一致） =====
                                 string insertsql = @"
-INSERT INTO wms_bill_inventorybook (ID,SOURCEORDER,BARCODE,ITEMNAME,ITEMCODE,LOT,REMARK,CREATOR,CREATETIME,SUPPLIERID)
+INSERT INTO wms_bill_inventorybook (ID,SOURCEORDER,BARCODE,ITEMNAME,ITEMCODE,LOT,QTY,REMARK,CREATOR,CREATETIME,SUPPLIERID)
                        VALUES
-                       (@ID,@SOURCEORDER, @BARCODE,@ITEMNAME,@ITEMCODE,@LOT,'','SAP',sysdate(),@SUPPLIERID) 
+                       (@ID,@SOURCEORDER, @BARCODE,@ITEMNAME,@ITEMCODE,@LOT,@QTY,'','SAP',sysdate(),@SUPPLIERID)
 ";
                                 dbcontext.Db.Ado.ExecuteCommand(insertsql, new List<SugarParameter>()
                     {
@@ -2835,6 +2850,7 @@ INSERT INTO wms_bill_inventorybook (ID,SOURCEORDER,BARCODE,ITEMNAME,ITEMCODE,LOT
                         new SugarParameter("@ITEMNAME",TASK_NO_SN),
                         new SugarParameter("@ITEMCODE",ITEMCODE),
                         new SugarParameter("@LOT",LOT),
+                        new SugarParameter("@QTY", needleQty > 0 ? (object)needleQty : DBNull.Value),
                         new SugarParameter("@SUPPLIERID",SUPPLIER)
                     });
                             }
@@ -2972,6 +2988,9 @@ DELETE FROM wms_bill_inventorybook  WHERE  BARCODE=@BARCODE
 
 
                     }
+
+                    // ===== 单针改造：出库完成，本盒针 RESERVED/AVAILABLE→OUTBOUND，记录出库口 END-taxi =====
+                    NeedleService.MarkOutboundComplete(dbcontext.Db, container, sourceOrder, endTaxi, "WCS");
 
                     dbcontext.Db.Ado.CommitTran();
 
@@ -7263,7 +7282,7 @@ DELETE FROM    wms_bill_putoutbody WHERE HEADERID=@HEADERID
 
                     });
                                 string delbodysql = @"
-DELETE FROM    wms_bill_putoutheader WHERE SOURCEORDER=@SOURCEORDER  and CONTAINER=@CONTAINER 
+DELETE FROM    wms_bill_putoutheader WHERE SOURCEORDER=@SOURCEORDER  and CONTAINER=@CONTAINER
 ";
                                 dbcontext.Db.Ado.ExecuteCommand(delbodysql, new List<SugarParameter>()
                     {
@@ -7271,6 +7290,8 @@ DELETE FROM    wms_bill_putoutheader WHERE SOURCEORDER=@SOURCEORDER  and CONTAIN
                         new SugarParameter("@CONTAINER",LENUM)
 
                     });
+                                // ===== 单针改造：出库取消，释放预占针 RESERVED→AVAILABLE =====
+                                NeedleService.UnreserveContainer(dbcontext.Db, LENUM, "取消出库");
                                 string delsql = @"
 DELETE FROM    wms_stocker_task WHERE SOURCEORDER=@SOURCEORDER  and CONTAINER=@CONTAINER 
 ";
@@ -7325,7 +7346,7 @@ DELETE FROM    wms_bill_putinbindingbody  WHERE HEADERID=@HEADERID
 
                     });
                                 string delbodysql = @"
-DELETE FROM    wms_bill_putinbindingheader WHERE SOURCEORDER=@SOURCEORDER  and CONTAINER=@CONTAINER 
+DELETE FROM    wms_bill_putinbindingheader WHERE SOURCEORDER=@SOURCEORDER  and CONTAINER=@CONTAINER
 ";
                                 dbcontext.Db.Ado.ExecuteCommand(delbodysql, new List<SugarParameter>()
                     {
@@ -7333,6 +7354,8 @@ DELETE FROM    wms_bill_putinbindingheader WHERE SOURCEORDER=@SOURCEORDER  and C
                         new SugarParameter("@CONTAINER",LENUM)
 
                     });
+                                // ===== 单针改造：入库绑定取消，本盒待入库针 INBOUND_PENDING→BIND_CANCELLED =====
+                                NeedleService.MarkBindCancelled(dbcontext.Db, LENUM, "取消入库");
                                 string delsql = @"
 DELETE FROM    wms_stocker_task WHERE SOURCEORDER=@SOURCEORDER  and CONTAINER=@CONTAINER 
 ";
@@ -7362,6 +7385,9 @@ DELETE FROM    wms_stocker_task WHERE SOURCEORDER=@SOURCEORDER  and CONTAINER=@C
                             }
 
                         }
+
+                        // ===== 单针改造：补齐原实现缺失的 CommitTran（修复前事务悬挂在共享连接上，由后续任意请求间接提交） =====
+                        dbcontext.Db.Ado.CommitTran();
                     }
 
                 }
@@ -8376,6 +8402,9 @@ LIMIT {quantity}";
                 int sets = Convert.ToInt32(json["sets"]);
                 JObject dicObj = json["dictionary"] as JObject;
 
+                // ===== 单针改造：可选机台号（备刀机请求带 machineno 时写入 OUTMACHINENO，不带则不动） =====
+                string machineno = json["machineno"] != null ? json["machineno"].ToString().Trim() : null;
+
 
                 Dictionary<string, int> request = dicObj.ToObject<Dictionary<string, int>>();
                 if (!IsValidSmallDrillSets(sets))
@@ -8518,6 +8547,9 @@ LIMIT {quantity}";
                             QRCode = container,
                             Content = actualSourceOrder
                         });
+
+                        // ===== 单针改造：出库建单预占本盒针 AVAILABLE→RESERVED（预占单号=备刀工单orderId；历史盒无针数据自动跳过） =====
+                        NeedleService.ReserveContainer(dbcontext.Db, container, orderId, machineno, "备刀机");
                     }
                     skuSeq++;
                 }
@@ -8713,6 +8745,9 @@ LIMIT {quantity}";
                                                                             new SugarParameter("@TASKMODE","NORMAL")
 
                                                                         });
+
+                                    // ===== 单针改造：出库建单预占本盒针 AVAILABLE→RESERVED（预占单号=出库单头ID） =====
+                                    NeedleService.ReserveContainer(dbcontext.Db, container, id, null, "SAP");
 
                                 }
 
@@ -10216,6 +10251,11 @@ VALUES
                     try
                     {
                         //string mc = json["cboSpec"].ToString().Trim(); //磨次
+                        // ===== 单针改造：可选针清单参数 Needles（不传则完全维持旧行为）；单据与针清单同事务 =====
+                        JToken needlesToken = json["Needles"] != null ? json["Needles"] : json["needles"];
+                        JArray needleArr = needlesToken as JArray;
+                        bool bindOkThis = false;
+                        dbcontext.Db.Ado.BeginTran();
                         string[] list = null;
                         if (barlist.Substring(barlist.Length - 1, 1) != "/")
                         {
@@ -10229,6 +10269,7 @@ VALUES
                         }
                         foreach (string s in list)
                         {
+                            bindOkThis = false;
                             // string[] list = txtBarcode.Text.Trim().Split(',');
                             //判定是否重复绑定
                             var barcode = service.Query(x => x.CONTAINER == s);
@@ -10238,6 +10279,7 @@ VALUES
                             {
                                 reslutJson.success = false;
                                 reslutJson.msg = s + "入库单生成失败：托盘码不符合规则，请更换托盘重新入库!";
+                                dbcontext.Db.Ado.RollbackTran(); // 单针改造：事务已开启，返回前必须回滚
                                 return reslutJson;
                             }
 
@@ -10276,6 +10318,7 @@ VALUES
                                     {
                                         reslutJson.success = true;
                                         reslutJson.msg = code + "入库单生成成功!";
+                                        bindOkThis = true; // 单针改造：覆盖绑定成功，允许写针清单
                                     }
                                     else
                                     {
@@ -10321,6 +10364,7 @@ VALUES
 
                                         reslutJson.success = true;
                                         reslutJson.msg = code + "入库单生成成功!";
+                                        bindOkThis = true; // 单针改造：新绑定成功，允许写针清单
                                     }
                                     else
                                     {
@@ -10333,11 +10377,23 @@ VALUES
 
                             }
 
+                            // ===== 单针改造：绑定/换绑本盒针清单（Needles 为 null/空时自动生成 50 个 T-随机字符-位置号 临时针号） =====
+                            if (bindOkThis)
+                            {
+                                var needlesForBox = NeedleService.FilterByContainer(needleArr, s);
+                                if (needlesForBox == null || needlesForBox.Count == 0)
+                                {
+                                    needlesForBox = NeedleService.GenerateTempNeedles(NeedleService.TEMP_NEEDLE_COUNT);
+                                }
+                                NeedleService.BindNeedles(dbcontext.Db, s, code, SUPPLIERID, needlesForBox, "手持扫描");
+                            }
 
                         }
+                        dbcontext.Db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
                     }
                     catch (Exception ee)
                     {
+                        dbcontext.Db.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
                         reslutJson.success = false;
                         reslutJson.msg = "入库单生成失败：" + ee.Message;
                     }
@@ -10432,6 +10488,11 @@ VALUES
             {
                 try
                 {
+                    // ===== 单针改造：研磨机换码入库，可选针清单参数 Needles（不传则完全维持旧行为）；单据与针清单同事务 =====
+                    JToken needlesToken = json["Needles"] != null ? json["Needles"] : json["needles"];
+                    JArray needleArr = needlesToken as JArray;
+                    bool bindOkThis = false;
+                    dbcontext.Db.Ado.BeginTran();
                     string[] list = null;
                     if (barlist.Substring(barlist.Length - 1, 1) != "/")
                     {
@@ -10445,6 +10506,7 @@ VALUES
                     }
                     foreach (string s in list)
                     {
+                        bindOkThis = false;
                         //判定是否重复绑定
                         var barcode = service.Query(x => x.CONTAINER == s);
                         var spec = servicespec.Query(x => x.CONTAINER == s && x.STATE < 2);
@@ -10471,6 +10533,7 @@ VALUES
                                 {
                                     reslutJson.success = true;
                                     reslutJson.msg = code + "入库单生成成功!";
+                                    bindOkThis = true; // 单针改造：覆盖绑定成功，允许写针清单
                                 }
                                 else
                                 {
@@ -10512,6 +10575,7 @@ VALUES
 
                                     reslutJson.success = true;
                                     reslutJson.msg = code + "入库单生成成功!";
+                                    bindOkThis = true; // 单针改造：新绑定成功，允许写针清单
                                 }
                                 else
                                 {
@@ -10524,11 +10588,23 @@ VALUES
 
                         }
 
+                        // ===== 单针改造：绑定/换绑本盒针清单（Needles 为 null/空时自动生成 50 个 T-随机字符-位置号 临时针号） =====
+                        if (bindOkThis)
+                        {
+                            var needlesForBox = NeedleService.FilterByContainer(needleArr, s);
+                            if (needlesForBox == null || needlesForBox.Count == 0)
+                            {
+                                needlesForBox = NeedleService.GenerateTempNeedles(NeedleService.TEMP_NEEDLE_COUNT);
+                            }
+                            NeedleService.BindNeedles(dbcontext.Db, s, code, null, needlesForBox, "手持扫描");
+                        }
 
                     }
+                    dbcontext.Db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
                 }
                 catch (Exception ee)
                 {
+                    dbcontext.Db.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
                     reslutJson.success = false;
                     reslutJson.msg = "入库单生成失败：" + ee.Message;
                 }
