@@ -23,11 +23,13 @@ namespace TR.DAL
 		{
 			//b.ITEMCODE, b.LOT
 			//(" SELECT  a.ID,a.SOURCEORDER,a.QUESTFLAG,a.CONTAINER,a.TASKTYPE,a.CONTAINERTYPE,a.LOCATIONCODE,a.TARGET,a.STATE,a.REMARK,a.QUESTTIME,a.FINISHTIME,a.ENABLED,a.CREATOR, a.CREATETIME, a.LASTEDITOR, a.LASTEDITTIME ,b.ITEMCODE, b.LOT  from wms_bill_putinbindingheader a     FORCE  INDEX(PRIMARY) left JOIN  wms_bill_putinbindingbody  b  on  a.ID = b.HEADERID   ")
-			return db.SqlQueryable<PutInModel>(" SELECT  a.ID,a.SOURCEORDER,a.QUESTFLAG,a.CONTAINER,a.TASKTYPE,a.CONTAINERTYPE,a.LOCATIONCODE,a.TARGET,a.STATE,a.REMARK,a.QUESTTIME,a.FINISHTIME,a.ENABLED,a.CREATOR, a.CREATETIME, a.LASTEDITOR, a.LASTEDITTIME, b.ITEMCODE, b.LOT from wms_bill_putinbindingheader a      left JOIN  wms_bill_putinbindingbody  b     on  a.ID = b.HEADERID   ")
-				.OrderByIF(!string.IsNullOrEmpty(strOrderByFileds), strOrderByFileds)
+			// 明细仅用于筛选单头，避免按 ID 分组时任意选取物料/批次。
+			var matchingHeaders = db.SqlQueryable<PutInModel>(" SELECT  a.ID,a.SOURCEORDER,a.QUESTFLAG,a.CONTAINER,a.TASKTYPE,a.CONTAINERTYPE,a.LOCATIONCODE,a.TARGET,a.STATE,a.REMARK,a.QUESTTIME,a.FINISHTIME,a.ENABLED,a.CREATOR, a.CREATETIME, a.LASTEDITOR, a.LASTEDITTIME, b.ITEMCODE, b.LOT from wms_bill_putinbindingheader a      left JOIN  wms_bill_putinbindingbody  b     on  a.ID = b.HEADERID   ")
 			   .WhereIF(whereExpression != null, whereExpression)
-				.Select<wms_bill_putinbindingheader>()
-				 .GroupBy(a=>a.ID).Distinct()
+			   .Select(a => a.ID).ToSql();
+			return db.Queryable<wms_bill_putinbindingheader>()
+			   .Where("ID IN (" + matchingHeaders.Key + ")", matchingHeaders.Value.ToArray())
+			   .OrderByIF(!string.IsNullOrEmpty(strOrderByFileds), strOrderByFileds)
 			   .ToPageList(intPageIndex, intPageSize, ref intTotalCount)
 				
 			   ;

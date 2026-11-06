@@ -23,11 +23,13 @@ namespace TR.DAL
 		{
 			//b.ITEMCODE, b.LOT
 			//(" SELECT  a.ID,a.SOURCEORDER,a.QUESTFLAG,a.CONTAINER,a.TASKTYPE,a.CONTAINERTYPE,a.LOCATIONCODE,a.TARGET,a.STATE,a.REMARK,a.QUESTTIME,a.FINISHTIME,a.ENABLED,a.CREATOR, a.CREATETIME, a.LASTEDITOR, a.LASTEDITTIME ,b.ITEMCODE, b.LOT  from wms_bill_putinbindingheader a     FORCE  INDEX(PRIMARY) left JOIN  wms_bill_putinbindingbody  b  on  a.ID = b.HEADERID   ")
-			return db.SqlQueryable<PutOutModel>(" SELECT  a.*,b.ITEMCODE,b.LOT from  wms_bill_putoutheader   a     left JOIN  wms_bill_putoutbody  b   on  a.ID = b.HEADERID   ")
-				.OrderByIF(!string.IsNullOrEmpty(strOrderByFileds), strOrderByFileds)
+			// 先按明细条件匹配单头 ID，再读取单头，保证一张单据仅返回一次。
+			var matchingHeaders = db.SqlQueryable<PutOutModel>(" SELECT  a.*,b.ITEMCODE,b.LOT from  wms_bill_putoutheader   a     left JOIN  wms_bill_putoutbody  b   on  a.ID = b.HEADERID   ")
 			   .WhereIF(whereExpression != null, whereExpression)
-				.Select<wms_bill_putoutheader>()
-				 .GroupBy(a=>a.ID).Distinct()
+			   .Select(a => a.ID).ToSql();
+			return db.Queryable<wms_bill_putoutheader>()
+			   .Where("ID IN (" + matchingHeaders.Key + ")", matchingHeaders.Value.ToArray())
+			   .OrderByIF(!string.IsNullOrEmpty(strOrderByFileds), strOrderByFileds)
 			   .ToPageList(intPageIndex, intPageSize, ref intTotalCount)
 				
 			   ;

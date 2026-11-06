@@ -243,6 +243,20 @@ namespace TR.Service
             return dbSession.Getwms_logDal();
         }
     }
+    public partial class wms_needle_inventoryService : BaseService<wms_needle_inventory>, Iwms_needle_inventoryService
+    {
+        protected override IBaseDal<wms_needle_inventory> GetDal()
+        {
+            return dbSession.Getwms_needle_inventoryDal();
+        }
+    }
+    public partial class wms_needle_transactionService : BaseService<wms_needle_transaction>, Iwms_needle_transactionService
+    {
+        protected override IBaseDal<wms_needle_transaction> GetDal()
+        {
+            return dbSession.Getwms_needle_transactionDal();
+        }
+    }
     public partial class wms_operation_logService : BaseService<wms_operation_log>, Iwms_operation_logService
     {
         protected override IBaseDal<wms_operation_log> GetDal()

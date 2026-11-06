@@ -15,7 +15,7 @@ using TR.ORM.Model;
 namespace TR.DAL
 {
 <#
-    string connectionString = @"server=localhost;uid=root;pwd=root;database=jc0004;charset=utf8;";
+    string connectionString = @"server=localhost;uid=root;pwd=123456;database=jc0004;charset=utf8;";
     string databaseName = "jc0004";
     List<string> tables = GetAllTables(connectionString, databaseName);
 

@@ -520,7 +520,7 @@
                             setTimeout(function () { searchClick(); }, 500);
                         }
                         else {
-                            hg.msg('操作失败！');
+                            hg.msg((data && data.msg) ? data.msg : '操作失败！');
                         }
 
                     },
@@ -563,7 +563,7 @@
                             setTimeout(function () { searchClick(); }, 500);
                         }
                         else {
-                            hg.msg('操作失败！');
+                            hg.msg((data && data.msg) ? data.msg : '操作失败！');
                         }
 
                     },

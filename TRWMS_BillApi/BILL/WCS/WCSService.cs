@@ -7290,8 +7290,8 @@ DELETE FROM    wms_bill_putoutheader WHERE SOURCEORDER=@SOURCEORDER  and CONTAIN
                         new SugarParameter("@CONTAINER",LENUM)
 
                     });
-                                // ===== 单针改造：出库取消，释放预占针 RESERVED→AVAILABLE =====
-                                NeedleService.UnreserveContainer(dbcontext.Db, LENUM, "取消出库");
+                                // ===== 单针改造：出库取消，释放预占针 RESERVED→AVAILABLE（履历 SOURCEORDER 记被取消单据号，取消记录保留不删） =====
+                                NeedleService.UnreserveContainer(dbcontext.Db, LENUM, TASK_NO, "取消出库");
                                 string delsql = @"
 DELETE FROM    wms_stocker_task WHERE SOURCEORDER=@SOURCEORDER  and CONTAINER=@CONTAINER 
 ";
@@ -8294,6 +8294,79 @@ LIMIT {quantity}";
             return SelectAvailableOutboundLocations(requestedSourceOrder, quantity);
         }
 
+        /// <summary>
+        /// 单针改造：按针数叫料的最佳适配选盒。
+        /// 规则（2026-11-05 业务确认）：
+        ///  1. 磨次优先高于一切——始终先耗尽磨次数字最高的档（与既有 M5→M1 降级口径一致）；
+        ///  2. 同磨次档内最佳适配：优先"针数 ≥ 剩余需求"中针数最小的盒（多发最少）；
+        ///     档内无单盒可满足时，出档内针数最大的盒继续凑，本档耗尽进入下一档；
+        ///  3. 针数相同取候选序靠前者（候选已按 LASTEDITTIME 排序，即 FIFO 作次级口径）；
+        ///  4. 针表无数据的历史盒按默认容量 NeedleService.TEMP_NEEDLE_COUNT 折算。
+        /// 复杂度最坏 O(n²)，n=单规格候选盒数（现实几十~几百盒，纯内存比较，无数据库往返）。
+        /// </summary>
+        private static List<DataRow> SelectBoxesByNeedleBestFit(DataTable candidates, Dictionary<string, int> needleMap, int needleNeed)
+        {
+            List<DataRow> result = new List<DataRow>();
+            if (candidates == null || candidates.Rows.Count == 0 || needleNeed <= 0)
+            {
+                return result;
+            }
+
+            int n = candidates.Rows.Count;
+            int[] needles = new int[n];
+            int[] grinds = new int[n];
+            bool[] used = new bool[n];
+            for (int i = 0; i < n; i++)
+            {
+                DataRow r = candidates.Rows[i];
+                string ctn = r["CONTAINER"].ToString();
+                int cnt;
+                if (needleMap == null || !needleMap.TryGetValue(ctn, out cnt) || cnt <= 0)
+                {
+                    cnt = NeedleService.TEMP_NEEDLE_COUNT;
+                }
+                needles[i] = cnt;
+
+                string so = r["SOURCEORDER"].ToString().Trim();
+                grinds[i] = (so.Length > 0 && char.IsDigit(so[so.Length - 1])) ? so[so.Length - 1] - '0' : 0;
+            }
+
+            int need = needleNeed;
+            while (need > 0)
+            {
+                // 当前仍有未选盒的最高磨次档
+                int g = -1;
+                for (int i = 0; i < n; i++)
+                {
+                    if (!used[i] && grinds[i] > g) g = grinds[i];
+                }
+                if (g < 0) break; // 候选耗尽
+
+                int pick = -1;
+                // 优先：档内针数 ≥ 剩余需求且针数最小的盒（同值取靠前者=FIFO）
+                for (int i = 0; i < n; i++)
+                {
+                    if (used[i] || grinds[i] != g || needles[i] < need) continue;
+                    if (pick < 0 || needles[i] < needles[pick]) pick = i;
+                }
+                // 次选：档内针数最大的盒继续凑（同值取靠前者=FIFO）
+                if (pick < 0)
+                {
+                    for (int i = 0; i < n; i++)
+                    {
+                        if (used[i] || grinds[i] != g) continue;
+                        if (pick < 0 || needles[i] > needles[pick]) pick = i;
+                    }
+                }
+                if (pick < 0) break;
+
+                used[pick] = true;
+                result.Add(candidates.Rows[pick]);
+                need -= needles[pick];
+            }
+            return result;
+        }
+
         private static bool IsValidSmallDrillSets(int sets)
         {
             return (sets >= 1 && sets <= 6) || (sets >= 12 && sets % 12 == 0);
@@ -8548,8 +8621,8 @@ LIMIT {quantity}";
                             Content = actualSourceOrder
                         });
 
-                        // ===== 单针改造：出库建单预占本盒针 AVAILABLE→RESERVED（预占单号=备刀工单orderId；历史盒无针数据自动跳过） =====
-                        NeedleService.ReserveContainer(dbcontext.Db, container, orderId, machineno, "备刀机");
+                        // ===== 单针改造：出库建单预占本盒针 AVAILABLE→RESERVED（预占单号=备刀工单orderId，出库口=1002；盒已被他单预占则抛异常整单回滚；历史盒无针数据自动跳过） =====
+                        NeedleService.ReserveContainer(dbcontext.Db, container, orderId, machineno, "1002", "备刀机");
                     }
                     skuSeq++;
                 }
@@ -8645,6 +8718,11 @@ LIMIT {quantity}";
                         Dictionary<string, int> getdir = data.ToObject<Dictionary<string, int>>();
                         Dictionary<string, int> newdir = new Dictionary<string, int>();
                         string sql = "";
+                        // ===== 单针改造：MachineNo 标记叫料机台（可选，兼容小写 machineno），写入针表 OUTMACHINENO =====
+                        JToken machToken = json["MachineNo"] != null ? json["MachineNo"] : json["machineno"];
+                        string machineno = machToken != null ? machToken.ToString().Trim() : null;
+                        // ===== 单针改造：叫料单位由盒数改为针数，一次性取全仓按盒 AVAILABLE 针数映射 =====
+                        Dictionary<string, int> needleMap = NeedleService.GetAvailableCountMap(dbcontext.Db);
                         dbcontext.Db.Ado.BeginTran();
 
                         //出库已确认不会出现重复下单20260323
@@ -8654,28 +8732,28 @@ LIMIT {quantity}";
                             string key = item.Key.Trim();
                             int value = item.Value;
 
-                            int tt = CountAvailableOutboundByGrindFallback(key);
-                            int use = 0;
-                            if (tt >= value)
+                            // ===== 单针改造：叫料单位由盒数改为针数（value=需求针数，含规格键与订单号键） =====
+                            // 候选盒全取（磨次优先、磨次内 FIFO），再按最佳适配选盒
+                            DataTable nowlist = SelectAvailableOutboundByGrindFallback(key, int.MaxValue);
+                            int accNeedles = 0; // 已选盒针数累计
+                            if (value > 0 && nowlist.Rows.Count > 0)
                             {
-                                use = value;
-                            }
-                            else
-                            {
-                                newdir.Add(key, value - tt);
-                                use = tt;
-                            }
-
-                            if (use > 0)
-                            {
-                                // 按目标磨次优先，不足则 M5→M4→…→M1 降级，各磨次内 FIFO
-                                DataTable nowlist = SelectAvailableOutboundByGrindFallback(key, use);
+                                // ===== 单针改造：最佳适配选盒（磨次优先高于一切；档内优先"针数≥剩余需求"的最小盒，无则出档内最大盒；同针数按 FIFO） =====
+                                List<DataRow> pickedBoxes = SelectBoxesByNeedleBestFit(nowlist, needleMap, value);
                                 //插入数据
-                                for (int i = 0; i < nowlist.Rows.Count; i++)
+                                foreach (DataRow boxRow in pickedBoxes)
                                 {
-                                    string locationCode = nowlist.Rows[i]["LOCATIONCODE"].ToString();
-                                    string container = nowlist.Rows[i]["CONTAINER"].ToString();
-                                    string actualSourceOrder = nowlist.Rows[i]["SOURCEORDER"]?.ToString()?.Trim() ?? string.Empty;
+                                    string locationCode = boxRow["LOCATIONCODE"].ToString();
+                                    string container = boxRow["CONTAINER"].ToString();
+
+                                    // ===== 单针改造：逐盒累计针数（用于缺口计算；历史盒按默认容量折算） =====
+                                    int boxNeedles;
+                                    if (!needleMap.TryGetValue(container, out boxNeedles) || boxNeedles <= 0)
+                                    {
+                                        boxNeedles = NeedleService.TEMP_NEEDLE_COUNT;
+                                    }
+                                    accNeedles += boxNeedles;
+                                    string actualSourceOrder = boxRow["SOURCEORDER"]?.ToString()?.Trim() ?? string.Empty;
                                     if (string.IsNullOrEmpty(actualSourceOrder))
                                     {
                                         actualSourceOrder = key;
@@ -8746,13 +8824,15 @@ LIMIT {quantity}";
 
                                                                         });
 
-                                    // ===== 单针改造：出库建单预占本盒针 AVAILABLE→RESERVED（预占单号=出库单头ID） =====
-                                    NeedleService.ReserveContainer(dbcontext.Db, container, id, null, "SAP");
-
+                                    // ===== 单针改造：出库建单预占本盒针 AVAILABLE→RESERVED（预占单号=出库单头ID，出库口=1001；MachineNo 写入 OUTMACHINENO；盒已被他单预占则抛异常整单回滚） =====
+                                    NeedleService.ReserveContainer(dbcontext.Db, container, id, machineno, "1001", "SAP");
                                 }
 
-
-
+                                // ===== 单针改造：缺口记入返回字典（单位=针数） =====
+                                if (accNeedles < value)
+                                {
+                                    newdir[key] = value - accNeedles;
+                                }
                             }
 
                         }
@@ -10406,6 +10486,191 @@ VALUES
 
             }
             LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "翻盒机扫码生成入库单");
+            return reslutJson;
+        }
+
+        /// <summary>
+        /// 单针改造第九批：备刀机回流入库（新建入库单，功能类似 CreatePutInfo）。
+        /// 入参：Barcode=盒号（单盒）、Spec=成品规格码（尾段 -N 为实际针数，ITEMCODE 需去掉）、
+        ///       Needles=逗号分隔槽位针号串（下标=槽位号从1起，值=针号，空槽位跳过不建针）。
+        /// 单据 CREATOR/TASKTYPE='备刀机回流'（TASKTYPE 随 completeEnterKu 写入台账 SUPPLIERID、针表 INBOUNDSOURCE）；
+        /// 单据与针清单同事务；盒已在库（inventorybook 有行）或存在未完成入库单（STATE&lt;2）时拒绝。
+        /// </summary>
+        /// <param name="json"></param>
+        /// <param name="ip"></param>
+        /// <returns></returns>
+        public ReslutJson BackFlowPutInfo(JObject json, string ip)
+        {
+            ReslutJson reslutJson = new ReslutJson();
+            string barcode = json["Barcode"] != null ? json["Barcode"].ToString().Trim() : string.Empty;   //盒号
+            string specc = json["Spec"] != null ? json["Spec"].ToString().Trim() : string.Empty;            //规格（成品码，尾段-针数）
+            if (string.IsNullOrEmpty(barcode) || string.IsNullOrEmpty(specc))
+            {
+                reslutJson.success = false;
+                reslutJson.msg = "回流入库单生成失败：条码或规格均不能为空!";
+                LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "备刀机回流入库");
+                return reslutJson;
+            }
+            if (barcode.IndexOf('/') >= 0)
+            {
+                reslutJson.success = false;
+                reslutJson.msg = "回流入库单生成失败：回流接口仅支持单盒，条码不能包含'/'!";
+                LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "备刀机回流入库");
+                return reslutJson;
+            }
+
+            //规格尾段 -数字 = 本盒实际针数；ITEMCODE 必须去掉该尾段（例 DT_EAS-2.003/2.5*M5-11 → DT_EAS-2.003/2.5*M5）
+            string code = specc;
+            int declaredNeedleQty = -1;
+            Match qtyMatch = Regex.Match(specc, @"-(\d+)$");
+            if (qtyMatch.Success)
+            {
+                code = specc.Substring(0, specc.Length - qtyMatch.Length);
+                declaredNeedleQty = int.Parse(qtyMatch.Groups[1].Value);
+            }
+            if (string.IsNullOrEmpty(code))
+            {
+                reslutJson.success = false;
+                reslutJson.msg = "回流入库单生成失败：规格" + specc + "去掉针数尾段后为空，请检查!";
+                LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "备刀机回流入库");
+                return reslutJson;
+            }
+
+            //针清单：逗号分隔槽位串（下标=槽位、值=针号、空槽位跳过）；兼容 JArray 对象数组老格式
+            JToken needlesToken = json["Needles"] != null ? json["Needles"] : json["needles"];
+            JArray needleArr = needlesToken as JArray;
+            if (needleArr == null && needlesToken != null && needlesToken.Type == JTokenType.String)
+            {
+                needleArr = NeedleService.ParseNeedleString(needlesToken.ToString());
+            }
+            if (needleArr == null || needleArr.Count == 0)
+            {
+                reslutJson.success = false;
+                reslutJson.msg = "回流入库单生成失败：针清单(Needles)为空，回流必须携带真实针号!";
+                LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "备刀机回流入库");
+                return reslutJson;
+            }
+            if (declaredNeedleQty >= 0 && declaredNeedleQty != needleArr.Count)
+            {
+                //规格尾段针数与清单条数不一致：以清单为准，仅记日志提醒
+                LOGService.WriteWcsRequestLog(context, json, "规格针数(" + declaredNeedleQty + ")与Needles清单条数(" + needleArr.Count + ")不一致，以清单为准", "备刀机回流入库");
+            }
+
+            try
+            {
+                bool bindOkThis = false;
+                dbcontext.Db.Ado.BeginTran(); // 单针改造：单据+针清单同事务
+
+                //判定是否重复入库（与 CreatePutInfo 同口径：库存台账 + 未完成入库单）
+                var barcodeInStock = service.Query(x => x.CONTAINER == barcode);
+                var spec = servicespec.Query(x => x.CONTAINER == barcode && x.STATE < 2);
+                if (!barcode.StartsWith("W", StringComparison.OrdinalIgnoreCase))
+                {
+                    reslutJson.success = false;
+                    reslutJson.msg = barcode + "回流入库单生成失败：托盘码不符合规则，请更换托盘重新入库!";
+                }
+                else if (barcodeInStock.Count > 0)
+                {
+                    reslutJson.success = false;
+                    reslutJson.msg = barcode + "回流入库单生成失败：库中已存在该条码!";
+                }
+                else if (spec != null && spec.Count > 0)//已有未完成入库单则覆盖
+                {
+                    wms_bill_putinbindingheader oldheadmodel = servicespec.Query(x => x.CONTAINER == barcode && x.STATE < 2).FirstOrDefault();
+                    wms_bill_putinbindingbody oldbodymodel = servicespecbody.Query(x => x.HEADERID == oldheadmodel.ID).FirstOrDefault();
+                    //覆盖单头：规格/任务类型/备注刷新为回流口径
+                    wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
+                    headmodel.ID = oldheadmodel.ID;
+                    headmodel.TASKTYPE = "备刀机回流";
+                    headmodel.Specifications = specc;
+                    headmodel.REMARK = "备刀机回流入库";
+                    headmodel.LASTEDITOR = "备刀机回流";
+                    headmodel.LASTEDITTIME = DateTime.Now;
+                    var resultsHead = servicespec.Update(headmodel);
+                    //覆盖明细：物料码=去掉针数尾段的规格
+                    wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
+                    bodymodel.ID = oldbodymodel.ID;
+                    bodymodel.HEADERID = oldbodymodel.HEADERID;
+                    bodymodel.ITEMCODE = code;
+                    bodymodel.CREATOR = "备刀机回流";
+                    bodymodel.CREATETIME = DateTime.Now;
+                    var results = servicespecbody.Update(bodymodel);
+                    if (resultsHead && results)
+                    {
+                        reslutJson.success = true;
+                        reslutJson.msg = code + "回流入库单生成成功!";
+                        bindOkThis = true; // 单针改造：覆盖绑定成功，允许写针清单
+                    }
+                    else
+                    {
+                        reslutJson.success = false;
+                        reslutJson.msg = "回流入库单生成失败：导入数据错误!";
+                    }
+                }
+                else
+                {
+                    //插入数据，提示绑定成功（字段口径与 CreatePutInfo 一致，CREATOR/TASKTYPE/REMARK 换为回流标识）
+                    string id = Guid.NewGuid().ToString("D");
+                    wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
+                    wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
+
+                    headmodel.ID = id;
+                    headmodel.SOURCEORDER = barcode;
+                    headmodel.CONTAINER = barcode;
+                    headmodel.CONTAINERTYPE = "0";
+                    headmodel.QUESTFLAG = 0;
+                    headmodel.STATE = 0;
+                    headmodel.TARGET = "101";
+                    headmodel.ENABLED = 1;
+                    headmodel.REMARK = "备刀机回流入库";
+                    headmodel.CREATOR = "备刀机回流";
+                    headmodel.CREATETIME = DateTime.Now;
+                    headmodel.TASKTYPE = "备刀机回流"; // completeEnterKu 以此写台账 SUPPLIERID / 针表 INBOUNDSOURCE
+                    headmodel.Specifications = specc;
+                    var results = (servicespec.InsertReturnIdentity(headmodel) == 1);
+
+                    string bodyid = Guid.NewGuid().ToString("D");
+                    bodymodel.ID = bodyid;
+                    bodymodel.HEADERID = id;
+                    bodymodel.ITEMCODE = code;
+                    bodymodel.CREATOR = "备刀机回流";
+                    bodymodel.CREATETIME = DateTime.Now;
+                    var results1 = (servicespecbody.InsertReturnIdentity(bodymodel) == 1);
+                    if (results & results1)
+                    {
+                        reslutJson.success = true;
+                        reslutJson.msg = code + "回流入库单生成成功!";
+                        bindOkThis = true; // 单针改造：新绑定成功，允许写针清单
+                    }
+                    else
+                    {
+                        reslutJson.success = false;
+                        reslutJson.msg = "回流入库单生成失败：导入数据错误!";
+                    }
+                }
+
+                // ===== 单针改造：绑定/换绑本盒针清单（回流必须携带真实针号，空槽位已在解析时跳过，不做临时针兜底） =====
+                if (bindOkThis)
+                {
+                    NeedleService.BindNeedles(dbcontext.Db, barcode, code, "备刀机回流", needleArr, "备刀机回流");
+                }
+
+                if (reslutJson.success)
+                {
+                    dbcontext.Db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
+                }
+                else
+                {
+                    dbcontext.Db.Ado.RollbackTran(); // 失败分支不提交，整体回滚
+                }
+            }
+            catch (Exception ee)
+            {
+                dbcontext.Db.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
+                reslutJson.success = false;
+                reslutJson.msg = "回流入库单生成失败：" + ee.Message;
+            }
+            LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "备刀机回流入库");
             return reslutJson;
         }
         public async Task<ReslutJson> CreatePutInfoByLookupAsync(JObject json, string ip)

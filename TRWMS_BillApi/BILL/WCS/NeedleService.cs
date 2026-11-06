@@ -66,6 +66,28 @@ namespace TRXWMS.BILL.WCS
             return arr;
         }
 
+        /// <summary>
+        /// 解析逗号分隔的槽位针号串（备刀机回流等接口格式）："1001,2001,,,,9002"
+        /// 数组下标即盒内槽位号（第1个值=槽位1），值为该槽位的真实针号；
+        /// 空槽位（连续逗号）跳过不建针。输出格式与 BindNeedles 入参一致（No/Pos）。
+        /// </summary>
+        public static JArray ParseNeedleString(string needles)
+        {
+            if (string.IsNullOrEmpty(needles) || needles.Trim().Length == 0) return null;
+            string[] slots = needles.Split(',');
+            JArray arr = new JArray();
+            for (int i = 0; i < slots.Length; i++)
+            {
+                string no = slots[i] == null ? string.Empty : slots[i].Trim();
+                if (no.Length == 0) continue; // 空槽位跳过
+                JObject o = new JObject();
+                o["No"] = no;
+                o["Pos"] = i + 1; // 下标=槽位号（从1起）
+                arr.Add(o);
+            }
+            return arr.Count > 0 ? arr : null;
+        }
+
         private static string GetStr(JToken jt, params string[] keys)
         {
             foreach (string k in keys)
@@ -222,7 +244,7 @@ UPDATE wms_needle_inventory
         /// <summary>入库完成：本盒 INBOUND_PENDING → AVAILABLE。返回更新针数（历史盒为 0 属正常）。</summary>
         public static int MarkInboundComplete(SqlSugarClient db, string container, string creator)
         {
-            int n = BulkTxn(db, container, "INBOUND", container, ST_PENDING, ST_AVAILABLE, null, null, creator);
+            int n = BulkTxn(db, container, "INBOUND", container, ST_PENDING, ST_AVAILABLE, null, creator);
             if (n > 0)
             {
                 db.Ado.ExecuteCommand(@"
@@ -236,12 +258,34 @@ UPDATE wms_needle_inventory SET STATUS='AVAILABLE', LASTEDITOR=@cr, LASTEDITTIME
             return n;
         }
 
-        /// <summary>出库建单预占：本盒 AVAILABLE → RESERVED；machineno 可为 null（保留旧值）。</summary>
-        public static int ReserveContainer(SqlSugarClient db, string container, string reserveOrder, string machineno, string creator)
+        /// <summary>
+        /// 出库建单预占：本盒 AVAILABLE → RESERVED，记录预占单据、机台号、出库口。
+        /// 防重复分配：盒内有针数据但已无 AVAILABLE 针时，视为已被其它单据预占或状态异常，
+        /// 抛异常由调用方事务整体回滚；历史盒（无针数据）返回 0 静默跳过。
+        /// machineno / outtarget 可为 null（对应列不动）。
+        /// </summary>
+        public static int ReserveContainer(SqlSugarClient db, string container, string reserveOrder, string machineno, string outtarget, string creator)
         {
             object mach = null;
             int m;
             if (!string.IsNullOrEmpty(machineno) && int.TryParse(machineno.Trim(), out m)) mach = m;
+
+            // ===== 防重复分配校验：有针数据但零可用 → 拒绝预占 =====
+            object totalObj = db.Ado.GetScalar(
+                "SELECT COUNT(*) FROM wms_needle_inventory WHERE CONTAINER=@ctn AND ENABLED=1",
+                new List<SugarParameter>() { new SugarParameter("@ctn", container) });
+            int total = totalObj == null ? 0 : Convert.ToInt32(totalObj);
+            if (total > 0)
+            {
+                object availObj = db.Ado.GetScalar(
+                    "SELECT COUNT(*) FROM wms_needle_inventory WHERE CONTAINER=@ctn AND ENABLED=1 AND STATUS='AVAILABLE'",
+                    new List<SugarParameter>() { new SugarParameter("@ctn", container) });
+                int avail = availObj == null ? 0 : Convert.ToInt32(availObj);
+                if (avail <= 0)
+                {
+                    throw new Exception("盒" + container + "无可用针（可能已被其它单据预占），预占失败!");
+                }
+            }
 
             int n = db.Ado.ExecuteCommand(@"
 INSERT INTO wms_needle_transaction
@@ -250,12 +294,13 @@ INSERT INTO wms_needle_transaction
        INBOUNDSOURCE, OUTMACHINENO, OUTTARGET, REMARK, CREATOR, CREATETIME)
 SELECT UUID(), ID, NEEDLENO, 'RESERVE', @ro, STATUS, 'RESERVED',
        ITEMCODE, ITEMCODE, CONTAINER, CONTAINER, POSITIONCODE, POSITIONCODE,
-       INBOUNDSOURCE, @mach, NULL, '', @cr, sysdate()
+       INBOUNDSOURCE, @mach, @ot, '', @cr, sysdate()
   FROM wms_needle_inventory
  WHERE CONTAINER=@ctn AND STATUS='AVAILABLE'",
                 new List<SugarParameter>() {
                     new SugarParameter("@ro", reserveOrder),
                     new SugarParameter("@mach", DbNullIfNull(mach)),
+                    new SugarParameter("@ot", DbNullIfNull(outtarget)),
                     new SugarParameter("@ctn", container),
                     new SugarParameter("@cr", creator)
                 });
@@ -263,12 +308,14 @@ SELECT UUID(), ID, NEEDLENO, 'RESERVE', @ro, STATUS, 'RESERVED',
             {
                 db.Ado.ExecuteCommand(@"
 UPDATE wms_needle_inventory
-   SET STATUS='RESERVED', RESERVEORDER=@ro, OUTMACHINENO=COALESCE(@mach, OUTMACHINENO),
+   SET STATUS='RESERVED', RESERVEORDER=@ro,
+       OUTMACHINENO=COALESCE(@mach, OUTMACHINENO), OUTTARGET=COALESCE(@ot, OUTTARGET),
        LASTEDITOR=@cr, LASTEDITTIME=sysdate()
  WHERE CONTAINER=@ctn AND STATUS='AVAILABLE'",
                     new List<SugarParameter>() {
                         new SugarParameter("@ro", reserveOrder),
                         new SugarParameter("@mach", DbNullIfNull(mach)),
+                        new SugarParameter("@ot", DbNullIfNull(outtarget)),
                         new SugarParameter("@ctn", container),
                         new SugarParameter("@cr", creator)
                     });
@@ -276,10 +323,13 @@ UPDATE wms_needle_inventory
             return n;
         }
 
-        /// <summary>出库取消：本盒 RESERVED → AVAILABLE，清空预占单号。</summary>
-        public static int UnreserveContainer(SqlSugarClient db, string container, string creator)
+        /// <summary>
+        /// 出库取消：本盒 RESERVED → AVAILABLE，清空预占单号。
+        /// sourceOrder=被取消的单据号（写入履历 SOURCEORDER 便于追溯；取消记录保留在履历表，不删除历史）。
+        /// </summary>
+        public static int UnreserveContainer(SqlSugarClient db, string container, string sourceOrder, string creator)
         {
-            int n = BulkTxn(db, container, "UNRESERVE", container, ST_RESERVED, ST_AVAILABLE, null, null, creator);
+            int n = BulkTxn(db, container, "UNRESERVE", sourceOrder, ST_RESERVED, ST_AVAILABLE, null, creator);
             if (n > 0)
             {
                 db.Ado.ExecuteCommand(@"
@@ -296,7 +346,7 @@ UPDATE wms_needle_inventory SET STATUS='AVAILABLE', RESERVEORDER=NULL, LASTEDITO
         /// <summary>入库绑定取消（入库任务被清除）：本盒 INBOUND_PENDING → BIND_CANCELLED。</summary>
         public static int MarkBindCancelled(SqlSugarClient db, string container, string creator)
         {
-            int n = BulkTxn(db, container, "BIND_CANCEL", container, ST_PENDING, ST_BIND_CANCELLED, null, null, creator);
+            int n = BulkTxn(db, container, "BIND_CANCEL", container, ST_PENDING, ST_BIND_CANCELLED, null, creator);
             if (n > 0)
             {
                 db.Ado.ExecuteCommand(@"
@@ -310,9 +360,44 @@ UPDATE wms_needle_inventory SET STATUS='BIND_CANCELLED', LASTEDITOR=@cr, LASTEDI
             return n;
         }
 
-        /// <summary>出库完成：本盒 RESERVED（或未经预占的 AVAILABLE）→ OUTBOUND，记录出库单与去向口。</summary>
+        /// <summary>
+        /// 出库完成：先核验本盒 RESERVED 针的预占单据与本出库单一致（防串单/错盒），
+        /// 再整盒 RESERVED（及未经预占旁路的 AVAILABLE）→ OUTBOUND，记录出库单与去向口。
+        /// 核验失败抛异常，由调用方事务整体回滚。
+        /// </summary>
         public static int MarkOutboundComplete(SqlSugarClient db, string container, string outboundOrder, string outtarget, string creator)
         {
+            // ===== 预占一致性核验：RESERVED 针的预占单号必须属于本出库单（单据ID / 其 ORDERID / outboundOrder） =====
+            List<string> allowed = new List<string>();
+            if (!string.IsNullOrEmpty(outboundOrder)) allowed.Add(outboundOrder);
+            DataTable hdr = db.Ado.GetDataTable(
+                "SELECT ID, ORDERID FROM wms_bill_putoutheader WHERE SOURCEORDER=@so AND CONTAINER=@ctn ORDER BY CREATETIME DESC LIMIT 1",
+                new List<SugarParameter>() {
+                    new SugarParameter("@so", outboundOrder),
+                    new SugarParameter("@ctn", container)
+                });
+            if (hdr != null && hdr.Rows.Count > 0)
+            {
+                allowed.Add(hdr.Rows[0]["ID"].ToString());
+                string oid = hdr.Rows[0]["ORDERID"] == DBNull.Value ? string.Empty : hdr.Rows[0]["ORDERID"].ToString();
+                if (!string.IsNullOrEmpty(oid)) allowed.Add(oid);
+            }
+            DataTable reservedOrders = db.Ado.GetDataTable(
+                "SELECT DISTINCT RESERVEORDER FROM wms_needle_inventory WHERE CONTAINER=@ctn AND STATUS='RESERVED' AND ENABLED=1",
+                new List<SugarParameter>() { new SugarParameter("@ctn", container) });
+            if (reservedOrders != null)
+            {
+                foreach (DataRow r in reservedOrders.Rows)
+                {
+                    string ro = r["RESERVEORDER"] == DBNull.Value ? string.Empty : r["RESERVEORDER"].ToString();
+                    if (!string.IsNullOrEmpty(ro) && !allowed.Contains(ro))
+                    {
+                        throw new Exception("出库完成核验失败：盒" + container + "预占单据(" + ro + ")与本出库单不一致，疑似串单/错盒，已阻止出库!");
+                    }
+                }
+            }
+
+            // AVAILABLE 一并翻转：兼容未经预占的旁路出库（如 SAP settaskoutbound 链路）；历史盒命中 0 行静默跳过
             int n = db.Ado.ExecuteCommand(@"
 INSERT INTO wms_needle_transaction
       (ID, NEEDLEID, NEEDLENO, BIZTYPE, SOURCEORDER, FROMSTATUS, TOSTATUS,
@@ -347,11 +432,31 @@ UPDATE wms_needle_inventory
 
         #endregion
 
+        #region 库存统计
+
+        /// <summary>
+        /// 全仓按盒统计 AVAILABLE 针数。无针数据的历史盒不在结果中，调用方按默认容量（TEMP_NEEDLE_COUNT）折算。
+        /// 用途：按针数叫料时的库存计数与选盒累计。
+        /// </summary>
+        public static Dictionary<string, int> GetAvailableCountMap(SqlSugarClient db)
+        {
+            DataTable dt = db.Ado.GetDataTable(
+                "SELECT CONTAINER, COUNT(*) AS CNT FROM wms_needle_inventory WHERE STATUS='AVAILABLE' AND ENABLED=1 GROUP BY CONTAINER");
+            Dictionary<string, int> map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataRow r in dt.Rows)
+            {
+                map[r["CONTAINER"].ToString()] = Convert.ToInt32(r["CNT"]);
+            }
+            return map;
+        }
+
+        #endregion
+
         #region 履历写入内部实现
 
         /// <summary>整盒批量流转的履历（FROMSTATUS 直接取变更前 STATUS 列，须在更新当前表之前调用）。</summary>
         private static int BulkTxn(SqlSugarClient db, string container, string biztype, string sourceOrder,
-                                   string fromStatusFilter, string toStatus, object machineno, string outtarget, string creator)
+                                   string fromStatusFilter, string toStatus, string outtarget, string creator)
         {
             return db.Ado.ExecuteCommand(@"
 INSERT INTO wms_needle_transaction

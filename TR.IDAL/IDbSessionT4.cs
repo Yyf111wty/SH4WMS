@@ -43,6 +43,8 @@ namespace TR.IDAL
         Iwms_conveyor_taskDal Getwms_conveyor_taskDal();
         Iwms_jc_tbdetailDal Getwms_jc_tbdetailDal();
         Iwms_logDal Getwms_logDal();
+        Iwms_needle_inventoryDal Getwms_needle_inventoryDal();
+        Iwms_needle_transactionDal Getwms_needle_transactionDal();
         Iwms_operation_logDal Getwms_operation_logDal();
         Iwms_report_workDal Getwms_report_workDal();
         Iwms_stocker_taskDal Getwms_stocker_taskDal();

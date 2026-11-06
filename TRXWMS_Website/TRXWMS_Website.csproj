@@ -177,6 +177,7 @@
     <Compile Include="Areas\WMS\Controllers\LocationController.cs" />
     <Compile Include="Areas\WMS\Controllers\LocationMapController.cs" />
     <Compile Include="Areas\WMS\Controllers\LogController.cs" />
+    <Compile Include="Areas\WMS\Controllers\NeedleController.cs" />
     <Compile Include="Areas\WMS\Controllers\OperationLogController.cs" />
     <Compile Include="Areas\WMS\Controllers\SystemLogController.cs" />
     <Compile Include="Areas\WMS\Controllers\MasterController.cs" />
@@ -217,6 +218,7 @@
     <Compile Include="Helper\UserPermissionCache.cs" />
     <Compile Include="Helper\WmsOperationLogRules.cs" />
     <Compile Include="Helper\WmsOperationLogWriter.cs" />
+    <Compile Include="Helper\WmsNeedleAdjust.cs" />
     <Compile Include="Helper\WmsOperationSnapshotLoader.cs" />
     <Compile Include="PowerCofig\InterfaceConfig.cs" />
     <Compile Include="PowerCofig\PermissionConfig.cs" />
@@ -456,6 +458,8 @@
     <Content Include="Areas\BIDD\Views\CustomerLevel\AddOrEdit.cshtml" />
     <Content Include="Areas\WMS\Views\YyfTest\Index.cshtml" />
     <Content Include="Areas\WMS\Views\lane\Index.cshtml" />
+    <Content Include="Areas\WMS\Views\Needle\Container.cshtml" />
+    <Content Include="Areas\WMS\Views\Needle\Index.cshtml" />
     <None Include="Properties\PublishProfiles\FolderProfile.pubxml" />
     <None Include="Scripts\jquery-3.3.1.intellisense.js" />
     <Content Include="Scripts\common.js" />

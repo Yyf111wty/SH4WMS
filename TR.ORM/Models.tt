@@ -6,7 +6,7 @@
     bool serviceModel = false;
 
     // 正确连接字符串
-    var connectionString = @"server=localhost;uid=root;pwd=root;database=jc0004;charset=utf8;";
+    var connectionString = @"server=localhost;uid=root;pwd=123456;database=jc0004;charset=utf8;";
 
     var database = new List<string> { "jc0004" };
 

@@ -17,6 +17,7 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
         wms_base_zoneService zoneservice = new wms_base_zoneService();
         wms_base_warehouseService warehouseservice = new wms_base_warehouseService();
         wms_bill_inventorybookService inventoryservice = new wms_bill_inventorybookService();
+        wms_stocker_taskService taskservice = new wms_stocker_taskService();
         // GET: WMS/TEST
         public ActionResult Index()
         {
@@ -584,6 +585,22 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
 
                 wms_base_location oldmodel = new wms_base_location();
                 oldmodel = service.Query(t => t.ID == ID).FirstOrDefault();
+
+                // 单针改造（第八批）：①该盒存在未完成出库任务（TYPE=2 AND STATE<2，同 settaskoutbound 口径）时禁止清空；
+                // ②删台账前把该盒未出库的针整盒调整出库（ADJUSTED_OUT+ADJUST_OUT 履历）；
+                // 调整失败抛异常走下方 catch，本次清空整体中断，杜绝"删台账留针"的假库存
+                if (oldmodel != null && !string.IsNullOrWhiteSpace(oldmodel.CONTAINER))
+                {
+                    string ctn = oldmodel.CONTAINER.Trim();
+                    var runningTasks = taskservice.Query(t => t.CONTAINER == ctn && t.TYPE == 2 && t.STATE < 2);
+                    if (runningTasks != null && runningTasks.Count > 0)
+                    {
+                        return Json(new { result = false, msg = "该盒存在未完成出库任务，请完成或先取消任务再清空！" }, JsonRequestBehavior.AllowGet);
+                    }
+                    WmsNeedleAdjust.AdjustOutForBox(ctn, oldmodel.SOURCEORDER,
+                        Session["username"] == null ? "" : Session["username"].ToString());
+                }
+
                 var list = inventoryservice.Query(t => t.SOURCEORDER == oldmodel.SOURCEORDER & t.BARCODE == oldmodel.CONTAINER);
                 if (list.Count > 0)
                 {
@@ -625,6 +642,20 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
 
                 wms_base_location oldmodel = new wms_base_location();
                 oldmodel = service.Query(t => t.ID == ID).FirstOrDefault();
+
+                // 单针改造（第八批）：清空托盘物料同样删除台账——有未完成出库任务先拦截，再把未出库针调整出库
+                if (oldmodel != null && !string.IsNullOrWhiteSpace(oldmodel.CONTAINER))
+                {
+                    string ctn = oldmodel.CONTAINER.Trim();
+                    var runningTasks = taskservice.Query(t => t.CONTAINER == ctn && t.TYPE == 2 && t.STATE < 2);
+                    if (runningTasks != null && runningTasks.Count > 0)
+                    {
+                        return Json(new { result = false, msg = "该盒存在未完成出库任务，请完成或先取消任务再清空！" }, JsonRequestBehavior.AllowGet);
+                    }
+                    WmsNeedleAdjust.AdjustOutForBox(ctn, oldmodel.SOURCEORDER,
+                        Session["username"] == null ? "" : Session["username"].ToString());
+                }
+
                 var list = inventoryservice.Query(t => t.SOURCEORDER == oldmodel.SOURCEORDER & t.BARCODE == oldmodel.CONTAINER);
                 if (list.Count > 0)
                 {

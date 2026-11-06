@@ -142,6 +142,14 @@ namespace TR.DalFactory
         {
             return new wms_logDal();
         }
+        public Iwms_needle_inventoryDal Getwms_needle_inventoryDal()
+        {
+            return new wms_needle_inventoryDal();
+        }
+        public Iwms_needle_transactionDal Getwms_needle_transactionDal()
+        {
+            return new wms_needle_transactionDal();
+        }
         public Iwms_operation_logDal Getwms_operation_logDal()
         {
             return new wms_operation_logDal();

@@ -143,6 +143,19 @@ namespace TRXWMS.Controllers
             return cSService.CreatePutInfo(json, ip);
         }
 
+        /// <summary>
+        /// 备刀机回流入库（新建入库单，功能类似 CreatePutInfo；Needles=逗号分隔槽位针号串）
+        /// </summary>
+        /// <param name="json">Barcode=盒号、Spec=规格（尾段-针数）、Needles=槽位针号串</param>
+        /// <returns></returns>
+        [HttpPost, Route("api/wms/BackFlowPutInfo")]
+        public ReslutJson BackFlowPutInfo(JObject json)
+        {
+            string ip = HttpContext.Current.Request.UserHostAddress;
+            WCSService cSService = new WCSService();
+            return cSService.BackFlowPutInfo(json, ip);
+        }
+
 
         [HttpPost, Route("api/wms/CreatePutInfoByLookupAsync")]
         public async Task<ReslutJson> CreatePutInfoByLookupAsync(JObject json)

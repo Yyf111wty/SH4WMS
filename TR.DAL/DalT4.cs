@@ -106,6 +106,12 @@ namespace TR.DAL
     public partial class wms_logDal : BaseDal<wms_log>, Iwms_logDal
     {
     }
+    public partial class wms_needle_inventoryDal : BaseDal<wms_needle_inventory>, Iwms_needle_inventoryDal
+    {
+    }
+    public partial class wms_needle_transactionDal : BaseDal<wms_needle_transaction>, Iwms_needle_transactionDal
+    {
+    }
     public partial class wms_operation_logDal : BaseDal<wms_operation_log>, Iwms_operation_logDal
     {
     }

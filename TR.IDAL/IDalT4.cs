@@ -105,6 +105,12 @@ namespace TR.IDAL
     public partial interface Iwms_logDal : IBaseDal<wms_log>
     {
     }
+    public partial interface Iwms_needle_inventoryDal : IBaseDal<wms_needle_inventory>
+    {
+    }
+    public partial interface Iwms_needle_transactionDal : IBaseDal<wms_needle_transaction>
+    {
+    }
     public partial interface Iwms_operation_logDal : IBaseDal<wms_operation_log>
     {
     }

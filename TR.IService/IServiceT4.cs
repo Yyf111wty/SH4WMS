@@ -105,6 +105,12 @@ namespace TR.IService
     public partial interface Iwms_logService : IBaseService<wms_log>
     {
     }
+    public partial interface Iwms_needle_inventoryService : IBaseService<wms_needle_inventory>
+    {
+    }
+    public partial interface Iwms_needle_transactionService : IBaseService<wms_needle_transaction>
+    {
+    }
     public partial interface Iwms_operation_logService : IBaseService<wms_operation_log>
     {
     }

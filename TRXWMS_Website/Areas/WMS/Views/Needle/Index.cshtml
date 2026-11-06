@@ -1,0 +1,337 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>单针追溯</title>
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="hg-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="stylesheet" href="~/css/font.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="~/lib/admin/admin.css" media="all">
+    <link rel="stylesheet" href="~/lib/Scrollbar/jquery.scrollbar.css">
+    <script type="text/javascript" src="~/lib/admin/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="~/lib/Scrollbar/jquery.scrollBar.js"></script>
+    <script type="text/javascript" src="~/lib/layui/layui.js"></script>
+    <script type="text/javascript" src="~/lib/admin/admin.js"></script>
+</head>
+
+<body class="layui-body-content">
+    <div class="layui-fluid">
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="iconfont">&#xe6ac;</i>单针追溯
+                <span class="layui-layout-right">
+                    <a href="javascript:;" hg-event="fullscreen">
+                        <i class="layui-icon layui-icon-screen-full"></i>
+                    </a>
+                </span>
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-form" lay-filter="example">
+                    <div class="layui-form-item">
+                        <div class="layui-inline">
+                            <input type="text" name="searchNEEDLENO" placeholder="针号" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchCONTAINER" placeholder="盒号" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <input type="text" name="searchITEMCODE" placeholder="规格" class="layui-input">
+                        </div>
+                        <div class="layui-inline">
+                            <select id="searchSTATUS" name="searchSTATUS" readonly="true" placeholder="状态">
+                                <option value="">全部状态</option>
+                                <option value="INBOUND_PENDING">待入库</option>
+                                <option value="AVAILABLE">可用</option>
+                                <option value="RESERVED">预占</option>
+                                <option value="OUTBOUND">已出库</option>
+                                <option value="BIND_CANCELLED">绑定取消</option>
+                                <option value="ADJUSTED_OUT">调整出库</option>
+                                <option value="QUARANTINED">隔离</option>
+                            </select>
+                        </div>
+                        <div class="layui-inline">
+                            <button type="button" class="layui-btn layui-btn-sm" onclick="searchClick()"><i class="layui-icon">&#xe615;</i>查询</button>
+                            <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" onclick="resetClick()"><i class="layui-icon">&#xe669;</i>重置</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-card-divs" id="group_div"></div>
+                <table class="layui-hide" id="needleTable" lay-filter="needleTable"></table>
+            </div>
+        </div>
+        <div class="layui-floor">
+            <blockquote class="layui-elem-quote layui-quote-nm">
+                Copyright @@ks-jichen.com  2026-2027 All Rights Reserved.
+            </blockquote>
+        </div>
+    </div>
+
+</body>
+</html>
+<script src="~/Scripts/formattodata.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script type="text/html" id="historyBar">
+    <a class="layui-btn layui-btn-xs" lay-event="viewHistory">履历</a>
+</script>
+<script>
+    // 单针改造·查询页面：状态/事件字典（与 NeedleService 枚举口径一致）
+    var STATUS_MAP = {
+        'INBOUND_PENDING': { text: '待入库', css: 'layui-bg-gray' },
+        'AVAILABLE': { text: '可用', css: 'layui-bg-green' },
+        'RESERVED': { text: '预占', css: 'layui-bg-orange' },
+        'OUTBOUND': { text: '已出库', css: 'layui-bg-blue' },
+        'BIND_CANCELLED': { text: '绑定取消', css: 'layui-bg-black' },
+        'ADJUSTED_OUT': { text: '调整出库', css: 'layui-bg-cyan' },
+        'QUARANTINED': { text: '隔离', css: 'layui-bg-red' }
+    };
+    var BIZTYPE_MAP = {
+        'BIND': '绑定',
+        'BIND_CANCEL': '取消绑定',
+        'INBOUND': '入库',
+        'RESERVE': '出库预占',
+        'UNRESERVE': '取消预占',
+        'OUTBOUND': '出库完成',
+        'ADJUST_OUT': '调整出库',
+        'QUARANTINE': '隔离'
+    };
+
+    $(function () {
+        var pageId = GetQueryString('pageId');
+        loadGroupFormButton(pageId);
+
+        // URL 预填查询条件（盒内明细页“去单针追溯”链接带入）
+        var preCtn = GetQueryString('CONTAINER');
+        var preNo = GetQueryString('NEEDLENO');
+        var preItem = GetQueryString('ITEMCODE');
+        var preStatus = GetQueryString('STATUS');
+        if (preCtn) { $('input[name=searchCONTAINER]').val(decodeURIComponent(preCtn)); }
+        if (preNo) { $('input[name=searchNEEDLENO]').val(decodeURIComponent(preNo)); }
+        if (preItem) { $('input[name=searchITEMCODE]').val(decodeURIComponent(preItem)); }
+        if (preStatus) { $('select[name=searchSTATUS]').val(preStatus); }
+
+        searchClick();
+    });
+
+    function statusBadge(status) {
+        var m = STATUS_MAP[status];
+        if (!m) {
+            return escapeHtml(status || '');
+        }
+        return "<span class='layui-badge " + m.css + "'>" + m.text + "</span>";
+    }
+
+    function isTempNeedle(no) {
+        return typeof no === 'string' && no.indexOf('T-') === 0;
+    }
+
+    function loadDatagrid(needleNo, container, itemCode, status) {
+        var tableCols = [[
+            {
+                field: 'NEEDLENO', title: '针号', align: 'center', minWidth: 170, templet: function (d) {
+                    var flag = isTempNeedle(d.NEEDLENO) ? " <span class='layui-badge layui-bg-cyan' title='未上报真实针号前自动生成'>临时针</span>" : '';
+                    return escapeHtml(d.NEEDLENO || '') + flag;
+                }
+            },
+            { field: 'ITEMCODE', title: '规格', align: 'center', minWidth: 110 },
+            {
+                field: 'CONTAINER', title: '盒号', align: 'center', minWidth: 130, templet: function (d) {
+                    if (!d.CONTAINER) { return ''; }
+                    return "<a href='javascript:;' class='needle-box-link' data-ctn='" + escapeHtml(d.CONTAINER) + "'>" + escapeHtml(d.CONTAINER) + "</a>";
+                }
+            },
+            { field: 'POSITIONCODE', title: '槽位', align: 'center', width: 70, sort: true },
+            {
+                field: 'STATUS', title: '状态', align: 'center', width: 90, templet: function (d) {
+                    return statusBadge(d.STATUS);
+                }
+            },
+            {
+                field: 'INBOUNDORDER', title: '来源(入库单)', align: 'center', minWidth: 120, templet: function (d) {
+                    return escapeHtml(d.INBOUNDORDER || '') + (d.INBOUNDSOURCE ? "<div style='font-size:11px;color:#888;'>" + escapeHtml(d.INBOUNDSOURCE) + "</div>" : '');
+                }
+            },
+            { field: 'RESERVEORDER', title: '预占单据', align: 'center', minWidth: 120, templet: function (d) { return escapeHtml(d.RESERVEORDER || ''); } },
+            {
+                field: 'OUTBOUNDORDER', title: '去向(出库单/口/机台)', align: 'center', minWidth: 150, templet: function (d) {
+                    var parts = [];
+                    if (d.OUTBOUNDORDER) { parts.push(escapeHtml(d.OUTBOUNDORDER)); }
+                    if (d.OUTTARGET) { parts.push('口:' + escapeHtml(String(d.OUTTARGET))); }
+                    if (d.OUTMACHINENO !== null && d.OUTMACHINENO !== undefined && d.OUTMACHINENO !== '') { parts.push('机台:' + escapeHtml(String(d.OUTMACHINENO))); }
+                    return parts.length ? parts.join(' / ') : '';
+                }
+            },
+            { field: 'LASTEDITTIME', title: '最后更新', align: 'center', width: 165, sort: true, templet: function (d) { return FormatToDate(d.LASTEDITTIME); } },
+            { title: '操作', width: 80, toolbar: '#historyBar', fixed: 'right' }
+        ]];
+
+        hg.table.datatable('needleTable', '单针追溯', '/WMS/Needle/GetRowData',
+            {
+                NEEDLENO: needleNo,
+                CONTAINER: container,
+                ITEMCODE: itemCode,
+                STATUS: status
+            },
+            tableCols, '', true, 'full-245');
+    }
+
+    function searchClick() {
+        layui.use(['form', 'layer', 'jquery'], function () {
+            $ = layui.jquery;
+            var form = layui.form;
+            form.render();
+
+            var data = form.val('example');
+            var params = {
+                NEEDLENO: data.searchNEEDLENO,
+                CONTAINER: data.searchCONTAINER,
+                ITEMCODE: data.searchITEMCODE,
+                STATUS: data.searchSTATUS
+            };
+
+            if (hg.table.datatablestatus && hg.table.datatablestatus.needleTable) {
+                hg.table.datatable('needleTable', 'reload', params);
+                return;
+            }
+
+            loadDatagrid(params.NEEDLENO, params.CONTAINER, params.ITEMCODE, params.STATUS);
+        });
+    }
+
+    function resetClick() {
+        layui.use(['form'], function () {
+            var form = layui.form;
+            form.val('example', {
+                searchNEEDLENO: '',
+                searchCONTAINER: '',
+                searchITEMCODE: '',
+                searchSTATUS: ''
+            });
+            form.render();
+            searchClick();
+        });
+    }
+
+    function openBoxDetail(container) {
+        window.open('/WMS/Needle/Container?container=' + encodeURIComponent(container));
+    }
+
+    // 履历弹层：状态、盒位变化与来源/去向（时间线）
+    function showHistory(needleNo) {
+        layui.use(['layer'], function () {
+            layer.open({
+                type: 1,
+                title: '针号履历 - ' + escapeHtml(needleNo),
+                area: ['880px', '80%'],
+                content: '<div id="needleHistoryBox" style="padding:12px;">加载中...</div>'
+            });
+
+            $.ajax({
+                type: 'get',
+                url: '/WMS/Needle/GetHistory',
+                data: { needleNo: needleNo },
+                dataType: 'json',
+                success: function (res) {
+                    if (!res || !res.success) {
+                        $('#needleHistoryBox').html(escapeHtml(res && res.error ? res.error : '查询失败'));
+                        return;
+                    }
+                    if (!res.rows || res.rows.length === 0) {
+                        $('#needleHistoryBox').html('<div style="color:#888;">暂无履历记录</div>');
+                        return;
+                    }
+                    var html = buildHistoryHtml(res.rows);
+                    $('#needleHistoryBox').html(html);
+                },
+                error: function () {
+                    $('#needleHistoryBox').html('请求失败');
+                }
+            });
+        });
+    }
+
+    function posText(container, position) {
+        var c = container ? escapeHtml(container) : '-';
+        var p = (position === null || position === undefined || position === '') ? '' : ('#' + position);
+        return c + p;
+    }
+
+    function buildHistoryHtml(rows) {
+        var html = '';
+        for (var i = rows.length - 1; i >= 0; i--) {
+            var r = rows[i];
+            var bizName = BIZTYPE_MAP[r.BIZTYPE] || (r.BIZTYPE || '');
+            var fromTo = '';
+            if (r.FROMSTATUS || r.TOSTATUS) {
+                fromTo = escapeHtml((STATUS_MAP[r.FROMSTATUS] ? STATUS_MAP[r.FROMSTATUS].text : (r.FROMSTATUS || '-'))
+                    + ' → ' + (STATUS_MAP[r.TOSTATUS] ? STATUS_MAP[r.TOSTATUS].text : (r.TOSTATUS || '-')));
+            }
+            var posChange = '';
+            if ((r.FROMCONTAINER || r.TOCONTAINER) && (r.FROMCONTAINER !== r.TOCONTAINER || r.FROMPOSITION !== r.TOPOSITION)) {
+                posChange = posText(r.FROMCONTAINER, r.FROMPOSITION) + ' → ' + posText(r.TOCONTAINER, r.TOPOSITION);
+            } else if (r.TOCONTAINER) {
+                posChange = posText(r.TOCONTAINER, r.TOPOSITION);
+            }
+            var src = '';
+            if (r.SOURCEORDER) { src = '单据:' + escapeHtml(r.SOURCEORDER); }
+            if (r.INBOUNDSOURCE) { src += (src ? ' / ' : '') + '入库来源:' + escapeHtml(r.INBOUNDSOURCE); }
+            var dest = '';
+            var destParts = [];
+            if (r.OUTTARGET) { destParts.push('出库口:' + escapeHtml(String(r.OUTTARGET))); }
+            if (r.OUTMACHINENO !== null && r.OUTMACHINENO !== undefined && r.OUTMACHINENO !== '') { destParts.push('机台:' + escapeHtml(String(r.OUTMACHINENO))); }
+            dest = destParts.join(' / ');
+
+            html += '<fieldset class="layui-elem-field layui-field-title" style="margin-top:8px;">'
+                + '<legend style="font-size:14px;">' + FormatToDate(r.CREATETIME)
+                + '　<b>' + escapeHtml(bizName) + '</b>'
+                + (r.TOSTATUS ? '　' + statusBadge(r.TOSTATUS) : '')
+                + '</legend>'
+                + '<div style="padding:4px 10px;line-height:1.9;font-size:13px;">'
+                + (fromTo ? '<div><b>状态变化：</b>' + fromTo + '</div>' : '')
+                + (posChange ? '<div><b>盒/槽位：</b>' + posChange + '</div>' : '')
+                + (r.FROMITEMCODE !== r.TOITEMCODE && (r.FROMITEMCODE || r.TOITEMCODE)
+                    ? '<div><b>规格变化：</b>' + escapeHtml(r.FROMITEMCODE || '-') + ' → ' + escapeHtml(r.TOITEMCODE || '-') + '</div>' : '')
+                + (src ? '<div><b>来源单据：</b>' + src + '</div>' : '')
+                + (dest ? '<div><b>去向：</b>' + dest + '</div>' : '')
+                + (r.REMARK ? '<div><b>备注：</b>' + escapeHtml(r.REMARK) + '</div>' : '')
+                + '</div></fieldset>';
+        }
+        return html;
+    }
+
+    // admin.js 约定：行工具事件按 lay-event 名分发到 window[事件名](obj, field)。
+    // 注意事件名不能撞 window 原生对象（如 history/open/location 会报错并中断分发）——
+    // 故用 viewHistory 而非 history。
+    function viewHistory(obj, field) {
+        if (obj && obj.data && obj.data.NEEDLENO) {
+            showHistory(obj.data.NEEDLENO);
+        }
+    }
+
+    // 盒号链接：document 级委托，reload 后事件不丢
+    $(document).on('click', '.needle-box-link', function () {
+        openBoxDetail($(this).attr('data-ctn'));
+    });
+
+    function escapeHtml(text) {
+        return $('<div/>').text(text === null || text === undefined ? '' : String(text)).html();
+    }
+
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return r[2];
+        }
+        return null;
+    }
+</script>
