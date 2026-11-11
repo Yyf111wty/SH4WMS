@@ -149,7 +149,7 @@ namespace TRXWMS.Controllers
         /// <param name="json">Barcode=盒号、Spec=规格（尾段-针数）、Needles=槽位针号串</param>
         /// <returns></returns>
         [HttpPost, Route("api/wms/BackFlowPutInfo")]
-        public ReslutJson BackFlowPutInfo(JObject json)
+        public ReslutLYJson BackFlowPutInfo(JObject json)
         {
             string ip = HttpContext.Current.Request.UserHostAddress;
             WCSService cSService = new WCSService();

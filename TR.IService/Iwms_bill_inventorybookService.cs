@@ -22,7 +22,8 @@ namespace TR.IService
               ref int intTotalCount,
               int intPageIndex = 0,
               int intPageSize = 20,
-              string strOrderByFileds = null);
+              string strOrderByFileds = null,
+              InventoryGGModel summary = null);
         List<InventoryKCModel> GetKClist(
          Expression<Func<InventoryKCModel, bool>> whereExpression,
              ref int intTotalCount,

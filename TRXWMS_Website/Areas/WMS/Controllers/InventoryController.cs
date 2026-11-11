@@ -467,20 +467,23 @@ WHERE ZONECODE = @ZONECODE AND LOCATIONCODE = @LOCATIONCODE AND OUTENABLED = 1",
         public ActionResult GetGGlist(InventoryGGModel model)
         {
             int TotalCount = 0;
-            int pageSize = Request["limit"] == "NaN" ? 20 : int.Parse(Request["limit"]);
-            int pageId = Request["page"] == "NaN" ? 1 : int.Parse(Request["page"]);
-            List<InventoryGGModel> lists = null;
+            int pageSize;
+            int pageId;
+            if (!int.TryParse(Request["limit"], out pageSize) || pageSize <= 0) pageSize = 20;
+            if (!int.TryParse(Request["page"], out pageId) || pageId <= 0) pageId = 1;
 
             try
             {
-                lists = service.GetGGlist(a => ((String.IsNullOrEmpty(model.SOURCEORDER) || a.SOURCEORDER.Contains(model.SOURCEORDER))
-               ), ref TotalCount, pageId, pageSize, "SOURCEORDER");
+                System.Linq.Expressions.Expression<Func<InventoryGGModel, bool>> filter =
+                    a => String.IsNullOrEmpty(model.SOURCEORDER) || a.SOURCEORDER.Contains(model.SOURCEORDER);
+                var summary = new InventoryGGModel();
+                var lists = service.GetGGlist(filter, ref TotalCount, pageId, pageSize, "SOURCEORDER", summary);
+                return Json(new { total = TotalCount, rows = lists ?? new List<InventoryGGModel>(), summary }, JsonRequestBehavior.AllowGet);
             }
-            catch (Exception ee)
+            catch (Exception ex)
             {
-                var a = ee.ToString();
+                return Json(new { total = 0, rows = new List<InventoryGGModel>(), msg = ex.Message }, JsonRequestBehavior.AllowGet);
             }
-            return Json(new { total = TotalCount, rows = lists }, JsonRequestBehavior.AllowGet);
         }
 
         public ActionResult GetExportlist(InventorystatisticsModel model)

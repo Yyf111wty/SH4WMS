@@ -25,5 +25,9 @@ namespace TR.Model
         /// 当前占用盒数（OUTENABLED=0）
         /// </summary>
         public string OCCUPYNUM { get; set; }
+        /// <summary>
+        /// 库存针数（无单针记录的历史盒按 50 支折算）
+        /// </summary>
+        public long NEEDLENUM { get; set; }
     }
 }

@@ -106,6 +106,10 @@
                     </button>
                 </div>
                 <table class="layui-hide" id="product" lay-filter="product"></table>
+                <div id="inventoryGGSummary" class="layui-elem-quote" style="display:none;margin-top:10px;">
+                    <strong id="inventoryGGTotal"></strong>
+                    <span style="margin-left:20px;color:#666;">无单针记录的历史盒按 50 支/盒折算</span>
+                </div>
             </div>
         </div>
         <div class="layui-floor">
@@ -124,9 +128,18 @@
     var inventorySearching = false;
     var inventoryTableMode = 'list';
     var inventorySortState = { field: '', type: '' };
+    var inventoryGGRequest = null;
+    var inventoryGGVersion = 0;
 
     function resetInventoryProductTable() {
         inventoryTableInited = false;
+        inventoryGGVersion++;
+        if (inventoryGGRequest) {
+            inventoryGGRequest.abort();
+            inventoryGGRequest = null;
+        }
+        $('#inventoryGGSummary').hide();
+        $('#inventoryGGTotal').text('');
         inventorySortState.field = '';
         inventorySortState.type = '';
         delete hg.table.datatablestatus.product;
@@ -407,6 +420,8 @@
     function loadGGDatagrid(SOURCEORDER) {
         resetInventoryProductTable();
         inventoryTableMode = 'gg';
+        $('#inventoryGGSummary').show();
+        $('#inventoryGGTotal').text('总计加载中…');
 
         var tableCols = [[
 
@@ -414,16 +429,51 @@
 
             { field: 'SOURCEORDER', title: '单据编号/规格分类', align: 'center', sort: true },
             { field: 'NUM', title: '库存剩余盒数', align: 'center', sort: true },
+            { field: 'NEEDLENUM', title: '库存针数（支）', align: 'center', sort: true },
             { field: 'OCCUPYNUM', title: '当前占用盒数', align: 'center', sort: true }
 
         ]
         ];
-        inventoryTableInited = true;
-        hg.table.datatable('product', '规格统计', '/WMS/Inventory/GetGGlist',
-            {
-                SOURCEORDER: SOURCEORDER
+        var requestVersion = inventoryGGVersion;
+        // 后端本已一次聚合所有规格；取回规格汇总行后本地分页，总计不依赖表格解析回调。
+        inventoryGGRequest = $.ajax({
+            url: '/WMS/Inventory/GetGGlist',
+            type: 'GET',
+            dataType: 'json',
+            cache: false,
+            data: { SOURCEORDER: SOURCEORDER, page: 1, limit: 2147483647 },
+            success: function (res) {
+                if (inventoryTableMode !== 'gg' || requestVersion !== inventoryGGVersion) {
+                    return;
+                }
+                inventoryGGRequest = null;
+                if (!res || res.msg || !$.isArray(res.rows) || res.total > res.rows.length) {
+                    $('#inventoryGGTotal').text('总计加载失败：' + ((res && res.msg) || '未取得完整规格统计结果，请重新查询'));
+                    return;
+                }
+                var rows = res.rows;
+                var summary = { NUM: 0, NEEDLENUM: 0, OCCUPYNUM: 0 };
+                for (var i = 0; i < rows.length; i++) {
+                    if (rows[i].NEEDLENUM == null || !isFinite(Number(rows[i].NEEDLENUM))) {
+                        $('#inventoryGGTotal').text('总计加载失败：统计接口未返回有效针数，请更新网站程序后重新查询');
+                        return;
+                    }
+                    summary.NUM += Number(rows[i].NUM) || 0;
+                    summary.NEEDLENUM += Number(rows[i].NEEDLENUM) || 0;
+                    summary.OCCUPYNUM += Number(rows[i].OCCUPYNUM) || 0;
+                }
+                $('#inventoryGGTotal').text('总计（全部查询结果）：库存剩余 ' + summary.NUM + ' 盒，库存针数 ' + summary.NEEDLENUM + ' 支，当前占用 ' + summary.OCCUPYNUM + ' 盒');
+                inventoryTableInited = true;
+                hg.table.datatable('product', '规格统计', rows, {}, tableCols, '', true, 'full-310');
             },
-            tableCols, '', true, 'full-255');
+            error: function (xhr, status) {
+                if (inventoryTableMode !== 'gg' || requestVersion !== inventoryGGVersion || status === 'abort') {
+                    return;
+                }
+                inventoryGGRequest = null;
+                $('#inventoryGGTotal').text('总计加载失败：请求异常，请重新查询');
+            }
+        });
     }
 
     //查询

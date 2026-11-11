@@ -44,10 +44,11 @@ namespace TR.Service
           ref int intTotalCount,
           int intPageIndex = 0,
           int intPageSize = 20,
-          string strOrderByFileds = null)
+          string strOrderByFileds = null,
+          InventoryGGModel summary = null)
         {
 
-            return dbSession.Getwms_bill_inventorybookDal().GetGGlist(whereExpression, ref intTotalCount, intPageIndex, intPageSize, strOrderByFileds);
+            return dbSession.Getwms_bill_inventorybookDal().GetGGlist(whereExpression, ref intTotalCount, intPageIndex, intPageSize, strOrderByFileds, summary);
 
 
 

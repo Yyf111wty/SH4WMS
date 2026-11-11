@@ -17,6 +17,7 @@ namespace TRWMS_BillApi.Models.Response
     {
         public string QRCode { get; set; }
         public string Content { get; set; }
+        public string NeedleNos { get; set; }
 
     }
 }
