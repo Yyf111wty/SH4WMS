@@ -193,6 +193,7 @@
     <Compile Include="Areas\WMS\Controllers\ZoneController.cs" />
     <Compile Include="Areas\WMS\WMSAreaRegistration.cs" />
     <Compile Include="Controllers\GroupsController.cs" />
+    <Compile Include="Controllers\HealthController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LoginController.cs" />
     <Compile Include="Controllers\PermissionController.cs" />
@@ -215,10 +216,12 @@
     <Compile Include="Helper\SmallDrillWorkOrderMenuRegistrar.cs" />
     <Compile Include="Helper\SystemLogMenuRegistrar.cs" />
     <Compile Include="Helper\LocationMapMenuRegistrar.cs" />
+    <Compile Include="Helper\ColdStartWarmer.cs" />
     <Compile Include="Helper\UserPermissionCache.cs" />
     <Compile Include="Helper\WmsOperationLogRules.cs" />
     <Compile Include="Helper\WmsOperationLogWriter.cs" />
     <Compile Include="Helper\WmsNeedleAdjust.cs" />
+    <Compile Include="Helper\SlowRequestLogger.cs" />
     <Compile Include="Helper\WmsOperationSnapshotLoader.cs" />
     <Compile Include="PowerCofig\InterfaceConfig.cs" />
     <Compile Include="PowerCofig\PermissionConfig.cs" />

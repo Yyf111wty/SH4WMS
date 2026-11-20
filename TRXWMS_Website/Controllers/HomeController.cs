@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.SessionState;
 using TR.Common;
 using TR.Model;
 using TR.Service;
@@ -19,6 +20,7 @@ namespace TRWMS_Website.Controllers
 {
     [LogExceptionAttribute]
     //[CheckLoginFilter]
+    [SessionState(SessionStateBehavior.ReadOnly)]
     public class HomeController : Controller
     {
         //stepService service = new stepService();

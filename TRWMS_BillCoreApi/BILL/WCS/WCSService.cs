@@ -33,8 +33,8 @@ namespace TRXWMS.BILL.WCS
 		
 		//public static DbContext context = new DbContext();
 
-		public static DbContext dbcontext = new DbContext();
-		public static MESService mesService = new MESService();
+		public DbContext dbcontext = new DbContext();
+		public MESService mesService = new MESService();
 
 		/// <summary>
 		/// 半成品申请库位(单伸位)参数：托盘号、工位、库区、实际重量，返回值：任务号、任务类型、托盘号、目标库位号、起始工位；string  startcode, string container, string zonecode, string realweight

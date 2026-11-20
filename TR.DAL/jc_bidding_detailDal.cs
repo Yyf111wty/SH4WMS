@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TR.Common;
 using TR.IDAL;
 using TR.Model;
+using TR.ORM;
 using TR.ORM.Model;
 
 namespace TR.DAL
@@ -49,7 +50,7 @@ namespace TR.DAL
             {
                
 
-				db.Ado.BeginTran();
+				SqlSugarClientFactory.BeginTran();
 				db.Deleteable<jc_bidding_project>().Where(it => it.PROJECTCODE == PROJECTCODE).ExecuteCommand();
 				db.Deleteable<jc_bidding_detail>().Where(it => it.PROJECTCODE == PROJECTCODE).ExecuteCommand();
 				db.Deleteable<jc_bidding_history>().Where(it => it.PROJECTCODE == PROJECTCODE).ExecuteCommand();
@@ -57,12 +58,12 @@ namespace TR.DAL
 			 //.UpdateColumns(it => new work_process() { group_id = class_id, machine_ids = "", user_ids = "", work_status = "待排产" })
 			 //.Where(it => it.job_id == job_id).ExecuteCommand();
 
-				db.Ado.CommitTran();
+				SqlSugarClientFactory.CommitTran();
                 result = true;
             }
             catch (Exception ex)
             {
-                db.Ado.RollbackTran();
+                SqlSugarClientFactory.RollbackTran();
             }
 
             return result;
@@ -76,7 +77,7 @@ namespace TR.DAL
             {
 
 
-                db.Ado.BeginTran();
+                SqlSugarClientFactory.BeginTran();
                 List<int> uidlist = db.Queryable<sys_userrole>().Where(t => t.RoleId==2).Select(t => t.UserId).Distinct().ToList();
                 var list = db.Queryable<sys_users>().Where(t => uidlist.Contains(SqlFunc.ToInt32(t.UserId))).ToList();
                 //删除无关数据
@@ -108,12 +109,12 @@ namespace TR.DAL
 
               
 
-                db.Ado.CommitTran();
+                SqlSugarClientFactory.CommitTran();
                 result = true;
             }
             catch (Exception ex)
             {
-                db.Ado.RollbackTran();
+                SqlSugarClientFactory.RollbackTran();
             }
 
             return result;

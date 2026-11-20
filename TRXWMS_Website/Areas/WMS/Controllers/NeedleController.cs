@@ -10,11 +10,13 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Web.Mvc;
+using System.Web.SessionState;
 using TR.ORM.Model;
 using TR.Service;
 
 namespace TRXWMS_Website.Areas.WMS.Controllers
 {
+    [SessionState(SessionStateBehavior.ReadOnly)]
     public class NeedleController : Controller
     {
         private readonly wms_needle_inventoryService _inventoryService = new wms_needle_inventoryService();
@@ -54,12 +56,10 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
 
             try
             {
-                lists = _inventoryService.QueryPage(x =>
-                        x.ENABLED == 1
-                        && (x.NEEDLENO.Contains(needleNo) || "" == needleNo)
-                        && (x.CONTAINER.Contains(container) || "" == container)
-                        && (x.ITEMCODE.Contains(itemCode) || "" == itemCode)
-                        && (x.STATUS == status || "" == status),
+                // 空关键字不再拼成 LIKE '%%'：709k 行的针表上 LIKE '%%' 会导致全表回表扫描（实测 5 秒）。
+                // 条件为空时直接省略该过滤，语义与原来完全一致（原写法为空串时恒为真）。
+                lists = _inventoryService.QueryPage(
+                    BuildInventoryFilter(needleNo, container, itemCode, status),
                     ref totalCount, pageId, pageSize, BuildOrderBy(Request["field"], Request["order"]));
             }
             catch (Exception ex)
@@ -68,6 +68,55 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
             }
 
             return Utf8Json(new { total = totalCount, rows = lists ?? new List<wms_needle_inventory>() });
+        }
+
+        /// <summary>
+        /// 组合查询条件：只把用户真实填写的关键字加入 SQL，避免生成 LIKE '%%'。
+        /// </summary>
+        private static System.Linq.Expressions.Expression<Func<wms_needle_inventory, bool>> BuildInventoryFilter(
+            string needleNo, string container, string itemCode, string status)
+        {
+            var parameter = System.Linq.Expressions.Expression.Parameter(typeof(wms_needle_inventory), "x");
+            System.Linq.Expressions.Expression body = System.Linq.Expressions.Expression.Equal(
+                System.Linq.Expressions.Expression.Property(parameter, "ENABLED"),
+                System.Linq.Expressions.Expression.Constant(1));
+
+            var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+
+            AppendContains(ref body, parameter, containsMethod, "NEEDLENO", needleNo);
+            AppendContains(ref body, parameter, containsMethod, "CONTAINER", container);
+            AppendContains(ref body, parameter, containsMethod, "ITEMCODE", itemCode);
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                body = System.Linq.Expressions.Expression.AndAlso(
+                    body,
+                    System.Linq.Expressions.Expression.Equal(
+                        System.Linq.Expressions.Expression.Property(parameter, "STATUS"),
+                        System.Linq.Expressions.Expression.Constant(status)));
+            }
+
+            return System.Linq.Expressions.Expression.Lambda<Func<wms_needle_inventory, bool>>(body, parameter);
+        }
+
+        private static void AppendContains(
+            ref System.Linq.Expressions.Expression body,
+            System.Linq.Expressions.ParameterExpression parameter,
+            System.Reflection.MethodInfo containsMethod,
+            string propertyName,
+            string keyword)
+        {
+            if (string.IsNullOrEmpty(keyword) || containsMethod == null)
+            {
+                return;
+            }
+
+            var call = System.Linq.Expressions.Expression.Call(
+                System.Linq.Expressions.Expression.Property(parameter, propertyName),
+                containsMethod,
+                System.Linq.Expressions.Expression.Constant(keyword));
+
+            body = System.Linq.Expressions.Expression.AndAlso(body, call);
         }
 
         /// <summary>

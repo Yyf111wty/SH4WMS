@@ -140,52 +140,47 @@
 </html>
 
 <script src="~/Scripts/formattodata.js"></script>
-<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js?v=20261119"></script>
 <script>
 
+    var bodyTableInited = false;
+    var dateInited = false;
     //初始化
     $(function () {
         var pageId = GetQueryString('pageId');
-        loadGroupFormButton(pageId);
-        //select填充数据
-        var searchZONECODE = getSelectData("", "库区");
-        $("#searchZONECODE").html(searchZONECODE);
-        var user = getUsertData();
-        if (user == 'bcp' || user == 'ycl' || user == 'cp' || user == 'lck') {
-            $("#locationcodediv").hide();
-        }
+        // 按钮渲染失败不能阻断后面的列表加载
+        try { loadGroupFormButton(pageId); } catch (btnErr) { if (window.console) { console.error(btnErr); } }
+
+        // 先让搜索框和表格进入页面，权限、用户和库区数据异步补齐，避免同步 AJAX 阻塞首屏绘制。
         searchClick();
+
+        $.post('/Location/GetUsertData')
+            .done(function (user) {
+                if (user == 'bcp' || user == 'ycl' || user == 'cp' || user == 'lck') {
+                    $("#locationcodediv").hide();
+                }
+            });
+
+        $.post('/Location/GetSearchSelectListByZone', { code: '', name: '库区' })
+            .done(function (html) {
+                $("#searchZONECODE").html(html);
+                layui.form && layui.form.render('select');
+            });
     })
 
 
     //获取用户名
     function getUsertData() {
-        var data;
-        $.ajax({
-            type: "post",
-            url: '/Location/GetUsertData',
-            dataType: "json",
-            async: false,
-            success: function (d) {
-                data = d;
-            }
-        });
-        return data;
+        return $.ajax({ type: "post", url: '/Location/GetUsertData', dataType: "json" });
     }
-    //获取select数句
+    //获取库区数据
     function getSelectData(code, name) {
-        var data;
-        $.ajax({
+        return $.ajax({
             type: "post",
             url: '/Location/GetSearchSelectListByZone',
             data: { code: code, name: name },
-            dataType: "json",
-            async: false,
-            success: function (d) {
-                data = d;
-            }
+            dataType: "json"
         });
-        return data;
     }
     //加载head
     function loadDatagrid(ZONECODE, TARGET, ITEMCODE, LOT, SOURCEORDER, CONTAINER, QUESTFLAG, STATE, ENABLED, startTime, endTime) {
@@ -292,28 +287,43 @@
             loadbodyDatagrid(ID);
         });
     }
-    //加载明细
-    function loadbodyDatagrid(ID) {
+    //加载明细（首次渲染空表，点击行后再请求数据，避免页面打开时多一次无意义查询）
+    function initBodyTable() {
+        if (bodyTableInited) { return; }
+        bodyTableInited = true;
         var tableCols = [[
             { field: 'ID', title: 'ID', align: 'center', width: 200, sort: true, hide: true },
-            //{ field: 'SOURCEORDER', title: '订单编号', align: 'center', width: 200, sort: true },
-            //{ field: 'CONTAINER', title: '载具编号', align: 'center', width: 200, sort: true },
             { field: 'ITEMCODE', title: '物料编号', align: 'center', width: 200, sort: true },
             { field: 'LOT', title: '批次', align: 'center', width: 200, sort: true },
-            //{ field: 'QTY', title: '数量', align: 'center', width: 200, sort: true },
             { field: 'CREATOR', title: '创建人', align: 'center', width: 100, sort: true },
-
             {
                 field: 'CREATETIME', title: '创建时间', align: 'center', width: 200, sort: true, templet:
                     function (d) {
                         return FormatToDate(d.CREATETIME);
                     }
             }
+        ]];
+        hg.table.datatable('typebody', '物料绑定明细', [], {}, tableCols, '', true, 'full-255');
+    }
 
-        ]
-        ];
-        var table = hg.table.datatable('typebody', '物料绑定明细', '/WMS/PutOut/GetBodyData?ID=' + ID, {}, tableCols, '', true, 'full-255');
-
+    function loadbodyDatagrid(ID) {
+        if (!ID) {
+            initBodyTable();
+            return;
+        }
+        var tableCols = [[
+            { field: 'ID', title: 'ID', align: 'center', width: 200, sort: true, hide: true },
+            { field: 'ITEMCODE', title: '物料编号', align: 'center', width: 200, sort: true },
+            { field: 'LOT', title: '批次', align: 'center', width: 200, sort: true },
+            { field: 'CREATOR', title: '创建人', align: 'center', width: 100, sort: true },
+            {
+                field: 'CREATETIME', title: '创建时间', align: 'center', width: 200, sort: true, templet:
+                    function (d) {
+                        return FormatToDate(d.CREATETIME);
+                    }
+            }
+        ]];
+        var table = hg.table.datatable('typebody', '物料绑定明细', '/WMS/PutOut/GetBodyData?ID=' + encodeURIComponent(ID), {}, tableCols, '', true, 'full-255');
     }
 
     //查询
@@ -334,12 +344,15 @@
                 var STATE = data.searchSTATE;
                 var ENABLED = data.searchENABLED;
                 var laydate = layui.laydate;
-                laydate.render({
-                    elem: '#dateRange',
-                    type: 'datetime',
-                    range: true,
-                    format: 'yyyy-MM-dd HH:mm:ss'
-                });
+                if (!dateInited) {
+                    laydate.render({
+                        elem: '#dateRange',
+                        type: 'datetime',
+                        range: true,
+                        format: 'yyyy-MM-dd HH:mm:ss'
+                    });
+                    dateInited = true;
+                }
 
                 var timeRange = $("#dateRange").val();
                 var startTime = "";
@@ -356,7 +369,7 @@
 
                 }
                 loadDatagrid(ZONECODE, TARGET, ITEMCODE, LOT, SOURCEORDER, CONTAINER, -10, STATE, ENABLED, startTime, endTime);
-                loadbodyDatagrid("");
+                initBodyTable();
             })
     }
 
@@ -368,7 +381,6 @@
             hg.confirm("确定删除此出库单及明细吗？", function () {
                 //row.del(); //只删本地数据
                 $.ajax({
-                    async: false,
                     type: "POST",
                     url: '/WMS/PutOut/DeleteHead',
                     data: { ID: row.data.ID },
@@ -398,12 +410,7 @@
     function loadGroupFormButton(pageId) {
         var MyDiv = document.getElementById("group_div");
         var MyDiv1 = document.getElementById("group_div1");
-        $.ajax({
-            type: "get",
-            url: "/Home/GetPermissionBtn",
-            dataType: "json",
-            data: { pageId: pageId },
-            success: function (result) {
+        getPermissionButtons(pageId, function (result) {
                 if (result.length == 0) { return; }
                 for (var i = 0; i < result.length; i++) {
                     if (result[i].NodeName == "新增" || result[i].NodeName == "编辑" || result[i].NodeName == "删除" || result[i].NodeName == "查询") {
@@ -441,13 +448,7 @@
                         MyDiv1.innerHTML += button;
                     }
                 }
-            },
-            error: function (message) {
-                //$.messageBox('系统提示', message); return;
-                layer.alert(message, { icon: 6 }); return;
-
-            }
-        })
+        });
     }
     //获取参数
     function GetQueryString(name) {

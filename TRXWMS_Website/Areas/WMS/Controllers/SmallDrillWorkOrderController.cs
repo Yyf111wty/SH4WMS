@@ -1,4 +1,5 @@
 using System.Web.Mvc;
+using System.Web.SessionState;
 using Newtonsoft.Json;
 using TRWMS_BillApi.Models.Response;
 using TRWMS_Website.Filters;
@@ -9,6 +10,7 @@ using TRXWMS_Website.Helper;
 namespace TRXWMS_Website.Areas.WMS.Controllers
 {
     [CheckLoginFilter]
+    [SessionState(SessionStateBehavior.ReadOnly)]
     public class SmallDrillWorkOrderController : Controller
     {
         private readonly ISmallDrillWorkOrderService _workOrderService;

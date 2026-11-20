@@ -1,5 +1,6 @@
-using SqlSugar;
+﻿using SqlSugar;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
@@ -11,29 +12,213 @@ namespace TR.ORM
     public static class SqlSugarClientFactory
     {
         private static readonly object SyncRoot = new object();
-        private static SqlSugarClient _client;
+        private static readonly AsyncLocal<RequestScope> AmbientScope = new AsyncLocal<RequestScope>();
+        private const string ScopeKey = "__TR_SqlSugar_Scope__";
+
+        private static long _clientsCreated;
+        private static long _clientsDisposed;
+        private static long _tranAutoRollback;
+
+        /// <summary>
+        /// 宿主注入请求级存储（网站传入 HttpContext.Items）。
+        /// 返回 null 时回退 AsyncLocal，适用于服务/控制台宿主。
+        /// </summary>
+        public static Func<IDictionary> ScopeStoreResolver { get; set; }
+
+        /// <summary>单条命令超时（秒），避免慢 SQL 长期占用工作线程。</summary>
+        public static int CommandTimeoutSeconds { get; set; } = 30;
+
+        internal sealed class RequestScope
+        {
+            public SqlSugarClient Client;
+            public int TranDepth;
+            public DateTime CreatedAt;
+        }
 
         /// <summary>
         /// 可选：宿主程序启动前手动指定连接串。
         /// </summary>
         public static string DB_ConnectionString { get; set; }
 
+        private static IDictionary GetScopeStore()
+        {
+            if (ScopeStoreResolver == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return ScopeStoreResolver();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static RequestScope GetCurrentScope()
+        {
+            IDictionary store = GetScopeStore();
+            if (store != null)
+            {
+                RequestScope scope = store[ScopeKey] as RequestScope;
+                if (scope == null)
+                {
+                    scope = new RequestScope();
+                    store[ScopeKey] = scope;
+                }
+
+                return scope;
+            }
+
+            RequestScope ambient = AmbientScope.Value;
+            if (ambient == null)
+            {
+                ambient = new RequestScope();
+                AmbientScope.Value = ambient;
+            }
+
+            return ambient;
+        }
+
         public static SqlSugarClient GetInstance()
         {
-            if (_client != null)
+            RequestScope scope = GetCurrentScope();
+            if (scope.Client != null)
             {
-                return _client;
+                return scope.Client;
             }
 
             lock (SyncRoot)
             {
-                if (_client == null)
+                if (scope.Client == null)
                 {
-                    _client = CreateClient(ResolveConnectionString());
+                    scope.Client = CreateClient(ResolveConnectionString());
+                    scope.CreatedAt = DateTime.Now;
+                    Interlocked.Increment(ref _clientsCreated);
                 }
             }
 
-            return _client;
+            return scope.Client;
+        }
+
+        public static void BeginTran()
+        {
+            RequestScope scope = GetCurrentScope();
+            if (scope.Client == null)
+            {
+                GetInstance();
+            }
+
+            if (scope.TranDepth == 0)
+            {
+                scope.Client.Ado.BeginTran();
+            }
+
+            scope.TranDepth++;
+        }
+
+        public static void CommitTran()
+        {
+            RequestScope scope = GetCurrentScope();
+            if (scope.TranDepth <= 0)
+            {
+                throw new InvalidOperationException("当前没有已开启的事务，不能提交。");
+            }
+
+            scope.TranDepth--;
+            if (scope.TranDepth == 0)
+            {
+                scope.Client.Ado.CommitTran();
+            }
+        }
+
+        public static void RollbackTran()
+        {
+            RequestScope scope = GetCurrentScope();
+            if (scope.TranDepth <= 0)
+            {
+                return;
+            }
+
+            scope.TranDepth = 0;
+            try
+            {
+                scope.Client.Ado.RollbackTran();
+            }
+            catch
+            {
+            }
+        }
+
+        public static void DisposeCurrent()
+        {
+            RequestScope scope = null;
+            IDictionary store = GetScopeStore();
+            if (store != null)
+            {
+                scope = store[ScopeKey] as RequestScope;
+                store.Remove(ScopeKey);
+            }
+            else
+            {
+                scope = AmbientScope.Value;
+                AmbientScope.Value = null;
+            }
+
+            if (scope == null || scope.Client == null)
+            {
+                return;
+            }
+
+            if (scope.TranDepth > 0)
+            {
+                Interlocked.Increment(ref _tranAutoRollback);
+                try
+                {
+                    scope.Client.Ado.RollbackTran();
+                }
+                catch
+                {
+                }
+                scope.TranDepth = 0;
+            }
+
+            try
+            {
+                scope.Client.Dispose();
+            }
+            catch
+            {
+            }
+            finally
+            {
+                Interlocked.Increment(ref _clientsDisposed);
+            }
+        }
+
+        /// <summary>
+        /// 诊断用：created 与 disposed 长期应接近，tranAutoRollback 正常应为 0。
+        /// </summary>
+        public static string GetDiagnostics()
+        {
+            long created = Interlocked.Read(ref _clientsCreated);
+            long disposed = Interlocked.Read(ref _clientsDisposed);
+            long autoRollback = Interlocked.Read(ref _tranAutoRollback);
+
+            int depth = 0;
+            try
+            {
+                depth = GetCurrentScope().TranDepth;
+            }
+            catch
+            {
+            }
+
+            return string.Format(
+                "created={0}, disposed={1}, alive={2}, tranAutoRollback={3}, currentTranDepth={4}",
+                created, disposed, created - disposed, autoRollback, depth);
         }
 
         public static T ExecuteWithRetry<T>(Func<T> action, int maxAttempts = 2)
@@ -82,24 +267,13 @@ namespace TR.ORM
 
         internal static void ResetClient()
         {
-            lock (SyncRoot)
+            RequestScope scope = GetCurrentScope();
+            if (scope.TranDepth > 0)
             {
-                if (_client == null)
-                {
-                    return;
-                }
-
-                try
-                {
-                    _client.Dispose();
-                }
-                catch
-                {
-                    // ignore dispose errors during recovery
-                }
-
-                _client = null;
+                return;
             }
+
+            DisposeCurrent();
         }
 
         internal static bool IsTransientConnectionError(Exception ex)
@@ -250,13 +424,16 @@ namespace TR.ORM
 
         private static SqlSugarClient CreateClient(string connectionString)
         {
-            return new SqlSugarClient(new ConnectionConfig
+            var client = new SqlSugarClient(new ConnectionConfig
             {
                 ConnectionString = connectionString,
                 DbType = DbType.MySql,
                 IsAutoCloseConnection = true,
                 InitKeyType = InitKeyType.Attribute
             });
+
+            client.Ado.CommandTimeOut = CommandTimeoutSeconds;
+            return client;
         }
     }
 }

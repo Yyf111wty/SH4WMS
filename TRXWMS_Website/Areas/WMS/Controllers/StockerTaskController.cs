@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.SessionState;
 using TR.ORM.Model;
 using TR.Service;
 using TRWMS_Website.Filters;
@@ -11,6 +12,7 @@ using TRXWMS_Website.Helper;
 namespace TRXWMS_Website.Areas.WMS.Controllers
 {
     //[CheckLoginFilter]
+    [SessionState(SessionStateBehavior.ReadOnly)]
     public class StockerTaskController : Controller
     {
         wms_stocker_taskService service = new wms_stocker_taskService();
@@ -47,7 +49,7 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
             int pageId = Request["page"] == "NaN" ? 1 : int.Parse(Request["page"]);//页数 
             List<wms_stocker_task> lists = null;
 			//根据用户名显示内容
-			string uid =HttpContextHelper.GetCurrentUserName().ToLower();
+			string uid =(HttpContextHelper.GetCurrentUserName() ?? string.Empty).ToLower();
 			if (uid == "ycl")
 			{
 				WMS_STOCKER_TASK.ZONECODE = "101-1";

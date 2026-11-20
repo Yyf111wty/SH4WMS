@@ -1,0 +1,25 @@
+-- WMS 网站操作审计日志（PM1018）
+CREATE TABLE IF NOT EXISTS wms_operation_log (
+    ID              VARCHAR(36)  NOT NULL PRIMARY KEY,
+    PageId          INT          NULL COMMENT '权限 pageId',
+    PageName        VARCHAR(100) NULL COMMENT '页面名称',
+    ButtonKey       VARCHAR(50)  NULL COMMENT '权限 KeyName',
+    ButtonName      VARCHAR(100) NULL COMMENT '按钮名称',
+    Module          VARCHAR(50)  NOT NULL DEFAULT 'WMS',
+    Controller      VARCHAR(100) NOT NULL,
+    Action          VARCHAR(100) NOT NULL,
+    OperationType   VARCHAR(50)  NOT NULL COMMENT '新增/修改/删除/导出/业务',
+    Result          VARCHAR(20)  NOT NULL COMMENT '成功/失败',
+    ErrorMessage    VARCHAR(500) NULL,
+    RequestData     TEXT         NULL,
+    DataBefore      TEXT         NULL,
+    DataAfter       TEXT         NULL,
+    OperatorName    VARCHAR(50)  NULL,
+    ClientIp        VARCHAR(50)  NULL,
+    OperateTime     DATETIME     NOT NULL,
+    DurationMs      INT          NULL,
+    INDEX idx_operate_time (OperateTime),
+    INDEX idx_operator (OperatorName),
+    INDEX idx_page (PageName),
+    INDEX idx_controller_action (Controller, Action)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

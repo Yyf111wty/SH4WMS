@@ -1,8 +1,11 @@
-using System;
+﻿﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.SessionState;
+using TR.IService;
 using TR.Model;
 using TR.ORM.Model;
 using TR.Service;
@@ -12,9 +15,10 @@ using TRXWMS_Website.Helper;
 namespace TRXWMS_Website.Areas.WMS.Controllers
 {
     //[CheckLoginFilter]
+    [SessionState(SessionStateBehavior.ReadOnly)]
     public class PutOutController : Controller
     {
-        wms_bill_putoutheaderService service = new wms_bill_putoutheaderService();
+        Iwms_bill_putoutheaderService service = new wms_bill_putoutheaderService();
         wms_bill_putoutbodyService bodyservice = new wms_bill_putoutbodyService();
         wms_base_locationService locationservice = new wms_base_locationService();
         // GET: WMS/PutIn
@@ -25,82 +29,137 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
 
         public ActionResult GetHeadData(PutOutModel putout)
         {
-            int TotalCount = 0;
-            int pageSize = Request["limit"] == "NaN" ? 20 : int.Parse(Request["limit"]);//每一页显示的记录数
-            int pageId = Request["page"] == "NaN" ? 1 : int.Parse(Request["page"]);//页数 
-            List<wms_bill_putoutheader> lists = null;
-			//根据用户名显示内容
-			string uid =HttpContextHelper.GetCurrentUserName().ToLower();
-			if (uid == "ycl")
-			{
-				putout.ZONECODE = "101-1";
+            int totalCount = 0;
+            int pageSize = ParsePageSize(Request["limit"]);
+            int pageIndex = ParsePageIndex(Request["page"]);
+            List<wms_bill_putoutheader> lists = new List<wms_bill_putoutheader>();
 
-			}
-			if (uid == "bcp")
-			{
-				putout.ZONECODE = "201-1";
-
-			}
-			if (uid == "cp")
-			{
-				putout.ZONECODE = "301-1";
-
-			}
-			if (uid == "lck")
-			{
-				putout.ZONECODE = "401-1";
-
-			}
-			try
-			{
-                lists = service.Getlist(x =>
-                     (putout.SOURCEORDER == null || x.SOURCEORDER.Contains(putout.SOURCEORDER))
-                     && (putout.CONTAINER == null || x.CONTAINER.Contains(putout.CONTAINER))
-					  && (putout.TARGET == null || x.TARGET.Contains(putout.TARGET))
-					   && (putout.ITEMCODE == null || x.ITEMCODE.Equals(putout.ITEMCODE))
-						&& (putout.LOT == null || x.LOT.Equals(putout.LOT))
-						&& (putout.ZONECODE == null || x.ZONECODE.Equals(putout.ZONECODE))
-					 && (putout.STATE == -10 || x.STATE.Equals(putout.STATE))
-                     && (putout.ENABLED == -10 || x.ENABLED.Equals(putout.ENABLED))
-                     && (putout.QUESTFLAG == -10 || x.QUESTFLAG.Equals(putout.QUESTFLAG))
-                     && (putout.startTime == null || putout.startTime <= x.FINISHTIME)
-                     && (putout.endTime == null || putout.endTime >= x.FINISHTIME)
-                     ,
-                     ref TotalCount, pageId, pageSize, "CREATETIME DESC").ToList();
-            }
-            catch (Exception ee)
+            if (putout == null)
             {
-                var a = ee.ToString();
+                putout = new PutOutModel();
             }
-            var total = TotalCount;
-            var rows = lists;
-            return Json(new { total = total, rows = rows }, JsonRequestBehavior.AllowGet);
-        }
 
+            NormalizePutOutFilter(putout);
+            ApplyUserZoneScope(putout);
 
-		
-		public ActionResult GetBodyData(string ID)
-        {
-            int TotalCount = 0;
-            int pageSize = Request["limit"] == "NaN" ? 20 : int.Parse(Request["limit"]);//每一页显示的记录数
-            int pageId = Request["page"] == "NaN" ? 1 : int.Parse(Request["page"]);//页数 
-            List<wms_bill_putoutbody> lists = null;
+            bool hasUserDate = putout.startTime.HasValue || putout.endTime.HasValue;
 
             try
             {
-                lists = bodyservice.QueryPage(x => x.HEADERID == ID
-
-
-                     ,
-                     ref TotalCount, pageId, pageSize, "CREATETIME DESC").ToList();
+                if (hasUserDate)
+                {
+                    // 用户指定时间范围：按完成时间过滤
+                    lists = service.GetHeaderPage(
+                        putout, true, null, null,
+                        ref totalCount, pageIndex, pageSize);
+                }
+                else
+                {
+                    // 未指定时间：默认只查最近 30 天，避免全表扫描
+                    DateTime recentStart = DateTime.Now.AddDays(-30);
+                    DateTime recentEnd = DateTime.Now.AddDays(1);
+                    lists = service.GetHeaderPage(
+                        putout, false, recentStart, recentEnd,
+                        ref totalCount, pageIndex, pageSize);
+                }
             }
-            catch (Exception ee)
+            catch (Exception ex)
             {
-                var a = ee.ToString();
+                Trace.TraceError("出库清单查询失败：" + ex);
             }
-            var total = TotalCount;
-            var rows = lists;
-            return Json(new { total = total, rows = rows }, JsonRequestBehavior.AllowGet);
+
+            return Json(new { total = totalCount, rows = lists }, JsonRequestBehavior.AllowGet);
+        }
+
+        public ActionResult GetBodyData(string ID)
+        {
+            int totalCount = 0;
+            int pageSize = ParsePageSize(Request["limit"]);
+            int pageIndex = ParsePageIndex(Request["page"]);
+            List<wms_bill_putoutbody> lists = new List<wms_bill_putoutbody>();
+
+            if (string.IsNullOrWhiteSpace(ID))
+            {
+                return Json(new { total = 0, rows = lists }, JsonRequestBehavior.AllowGet);
+            }
+
+            try
+            {
+                lists = bodyservice.QueryPage(x => x.HEADERID == ID,
+                     ref totalCount, pageIndex, pageSize, "CREATETIME DESC").ToList();
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("出库明细查询失败：" + ex);
+            }
+
+            return Json(new { total = totalCount, rows = lists }, JsonRequestBehavior.AllowGet);
+        }
+
+        private static int ParsePageSize(string limit)
+        {
+            int size;
+            if (!int.TryParse(limit, out size) || size <= 0)
+            {
+                size = 30;
+            }
+
+            return size > 200 ? 200 : size;
+        }
+
+        private static int ParsePageIndex(string page)
+        {
+            int index;
+            if (!int.TryParse(page, out index) || index <= 0)
+            {
+                index = 1;
+            }
+
+            return index;
+        }
+
+        /// <summary>
+        /// 空字符串归一为 null，避免生成 LIKE '%%' 导致无法命中索引。
+        /// </summary>
+        private static void NormalizePutOutFilter(PutOutModel putout)
+        {
+            putout.SOURCEORDER = TrimToNull(putout.SOURCEORDER);
+            putout.CONTAINER = TrimToNull(putout.CONTAINER);
+            putout.TARGET = TrimToNull(putout.TARGET);
+            putout.ITEMCODE = TrimToNull(putout.ITEMCODE);
+            putout.LOT = TrimToNull(putout.LOT);
+            putout.ZONECODE = TrimToNull(putout.ZONECODE);
+        }
+
+        private static string TrimToNull(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return value.Trim();
+        }
+
+        private void ApplyUserZoneScope(PutOutModel putout)
+        {
+            string uid = (HttpContextHelper.GetCurrentUserName() ?? string.Empty).ToLower();
+            if (uid == "ycl")
+            {
+                putout.ZONECODE = "101-1";
+            }
+            else if (uid == "bcp")
+            {
+                putout.ZONECODE = "201-1";
+            }
+            else if (uid == "cp")
+            {
+                putout.ZONECODE = "301-1";
+            }
+            else if (uid == "lck")
+            {
+                putout.ZONECODE = "401-1";
+            }
         }
 		[HttpPost]
 		public JsonResult DeleteHead(string ID)

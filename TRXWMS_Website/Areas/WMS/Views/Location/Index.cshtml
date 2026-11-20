@@ -1,4 +1,4 @@
-
+﻿
 @{
     Layout = null;
 }
@@ -115,7 +115,7 @@
 </body>
 </html>
 <script src="~/Scripts/formattodata.js"></script>
-<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js?v=20261119"></script>
 <script>
 
     //初始化
@@ -240,7 +240,9 @@
             },
             {
                 field: 'OUTENABLED', title: '占用状态', align: 'center', width: 120, sort: true, templet: function (d) {
-                    if (d.OUTENABLED == 0 || d.OUTENABLED === '0') {
+                    var hasContainer = d.CONTAINER != null
+                        && String(d.CONTAINER).trim() !== '';
+                    if (hasContainer) {
                         return "<span class='layui-badge layui-bg-red'>占用</span>";
                     }
                     return "<span class='layui-badge layui-bg-green'>可用</span>";

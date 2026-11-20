@@ -1,9 +1,11 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Web;
 using System.Web.Management;
 using System.Web.Mvc;
+using System.Web.SessionState;
 using TR.Model;
 using TR.ORM.Model;
 using TR.Service;
@@ -14,6 +16,7 @@ using TRXWMS_Website.Helper;
 namespace TRXWMS_Website.Areas.WMS.Controllers
 {
     [CheckLoginFilter]
+	[SessionState(SessionStateBehavior.ReadOnly)]
 	public class PutInController : Controller
     {
         wms_bill_putinbindingheaderService service = new wms_bill_putinbindingheaderService();
@@ -64,64 +67,112 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
 
         public ActionResult GetHeadData(PutInModel WMS_BILL_PUTIN)
         {
-            int TotalCount = 0;
-            int pageSize = Request["limit"] == "NaN" ? 20 : int.Parse(Request["limit"]);//每一页显示的记录数
-            int pageId = Request["page"] == "NaN" ? 1 : int.Parse(Request["page"]);//页数 
-            List<wms_bill_putinbindingheader> lists = null;
-			//List<PutInModel> listsmodel = null;
-			//根据用户名显示内容
-			string uid =HttpContextHelper.GetCurrentUserName().ToLower();
-			if (uid == "ycl")
-			{
-				WMS_BILL_PUTIN.TARGET = "101-1";
+            int totalCount = 0;
+            int pageSize = ParsePageSize(Request["limit"]);
+            int pageIndex = ParsePageIndex(Request["page"]);
+            List<wms_bill_putinbindingheader> lists = new List<wms_bill_putinbindingheader>();
 
-			}
-			if (uid == "bcp")
-			{
-				WMS_BILL_PUTIN.TARGET = "201-1";
-
-			}
-			if (uid == "cp")
-			{
-				WMS_BILL_PUTIN.TARGET = "301-1";
-
-			}
-			if (uid == "lck")
-			{
-				WMS_BILL_PUTIN.TARGET = "401-1";
-
-			}
-			try
+            if (WMS_BILL_PUTIN == null)
             {
-				lists = putinservice.Getlist(a=>
-					 (WMS_BILL_PUTIN.SOURCEORDER == null || a.SOURCEORDER.Contains(WMS_BILL_PUTIN.SOURCEORDER))
-
-					  && (WMS_BILL_PUTIN.TARGET == null || a.TARGET.Equals(WMS_BILL_PUTIN.TARGET))
-					   && (WMS_BILL_PUTIN.ITEMCODE == null || a.ITEMCODE.Equals(WMS_BILL_PUTIN.ITEMCODE))
-						&& (WMS_BILL_PUTIN.LOT == null || a.LOT.Equals(WMS_BILL_PUTIN.LOT))
-
-					 && (WMS_BILL_PUTIN.CONTAINER == null || a.CONTAINER.Equals(WMS_BILL_PUTIN.CONTAINER))
-						&& (WMS_BILL_PUTIN.LOCATIONCODE == null || a.LOCATIONCODE.Equals(WMS_BILL_PUTIN.LOCATIONCODE))
-					 && (WMS_BILL_PUTIN.STATE == -10 || a.STATE.Equals(WMS_BILL_PUTIN.STATE))
-					 && (WMS_BILL_PUTIN.ENABLED == -10 || a.ENABLED.Equals(WMS_BILL_PUTIN.ENABLED))
-					 && (WMS_BILL_PUTIN.QUESTFLAG == -10 || a.QUESTFLAG.Equals(WMS_BILL_PUTIN.QUESTFLAG))
-					 && (WMS_BILL_PUTIN.startTime == null || WMS_BILL_PUTIN.startTime<=a.FINISHTIME)
-					 && (WMS_BILL_PUTIN.endTime == null || WMS_BILL_PUTIN.endTime>=a.FINISHTIME)
-					 ,
-					 ref TotalCount, pageId, pageSize, "CREATETIME DESC")					
-					.ToList();
-
-				
-			
-
-			}
-            catch (Exception ee)
-            {
-                var a = ee.ToString();
+                WMS_BILL_PUTIN = new PutInModel();
             }
-            var total = TotalCount;
-            var rows = lists;
-            return Json(new { total = total, rows = rows }, JsonRequestBehavior.AllowGet);
+
+            NormalizePutInFilter(WMS_BILL_PUTIN);
+            ApplyUserZoneScope(WMS_BILL_PUTIN);
+
+            bool hasUserDate = WMS_BILL_PUTIN.startTime.HasValue || WMS_BILL_PUTIN.endTime.HasValue;
+
+            try
+            {
+                if (hasUserDate)
+                {
+                    // 用户指定时间范围：按完成时间过滤
+                    lists = putinservice.GetHeaderPage(
+                        WMS_BILL_PUTIN, true, null, null,
+                        ref totalCount, pageIndex, pageSize);
+                }
+                else
+                {
+                    // 未指定时间：默认只查最近 30 天，避免全表扫描
+                    DateTime recentStart = DateTime.Now.AddDays(-30);
+                    DateTime recentEnd = DateTime.Now.AddDays(1);
+                    lists = putinservice.GetHeaderPage(
+                        WMS_BILL_PUTIN, false, recentStart, recentEnd,
+                        ref totalCount, pageIndex, pageSize);
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("入库清单查询失败：" + ex);
+            }
+
+            return Json(new { total = totalCount, rows = lists }, JsonRequestBehavior.AllowGet);
+        }
+
+        private static int ParsePageSize(string limit)
+        {
+            int size;
+            if (!int.TryParse(limit, out size) || size <= 0)
+            {
+                size = 30;
+            }
+
+            return size > 200 ? 200 : size;
+        }
+
+        private static int ParsePageIndex(string page)
+        {
+            int index;
+            if (!int.TryParse(page, out index) || index <= 0)
+            {
+                index = 1;
+            }
+
+            return index;
+        }
+
+        /// <summary>
+        /// 空字符串归一为 null，避免生成 LIKE '%%' 导致无法命中索引。
+        /// </summary>
+        private static void NormalizePutInFilter(PutInModel model)
+        {
+            model.SOURCEORDER = TrimToNull(model.SOURCEORDER);
+            model.TARGET = TrimToNull(model.TARGET);
+            model.ITEMCODE = TrimToNull(model.ITEMCODE);
+            model.LOT = TrimToNull(model.LOT);
+            model.CONTAINER = TrimToNull(model.CONTAINER);
+            model.LOCATIONCODE = TrimToNull(model.LOCATIONCODE);
+        }
+
+        private static string TrimToNull(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return value.Trim();
+        }
+
+        private void ApplyUserZoneScope(PutInModel model)
+        {
+            string uid = (HttpContextHelper.GetCurrentUserName() ?? string.Empty).ToLower();
+            if (uid == "ycl")
+            {
+                model.TARGET = "101-1";
+            }
+            else if (uid == "bcp")
+            {
+                model.TARGET = "201-1";
+            }
+            else if (uid == "cp")
+            {
+                model.TARGET = "301-1";
+            }
+            else if (uid == "lck")
+            {
+                model.TARGET = "401-1";
+            }
         }
 
 
@@ -166,26 +217,27 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
 
 		public ActionResult GetBodyData(string ID)
         {
-            int TotalCount = 0;
-            int pageSize = Request["limit"] == "NaN" ? 20 : int.Parse(Request["limit"]);//每一页显示的记录数
-            int pageId = Request["page"] == "NaN" ? 1 : int.Parse(Request["page"]);//页数 
-            List<wms_bill_putinbindingbody> lists = null;
+            int totalCount = 0;
+            int pageSize = ParsePageSize(Request["limit"]);
+            int pageIndex = ParsePageIndex(Request["page"]);
+            List<wms_bill_putinbindingbody> lists = new List<wms_bill_putinbindingbody>();
+
+            if (string.IsNullOrWhiteSpace(ID))
+            {
+                return Json(new { total = 0, rows = lists }, JsonRequestBehavior.AllowGet);
+            }
 
             try
             {
-                lists = bodyservice.QueryPage(x =>x.HEADERID==ID
-                    
-                   
-                     ,
-                     ref TotalCount, pageId, pageSize, "CREATETIME DESC").ToList();
+                lists = bodyservice.QueryPage(x => x.HEADERID == ID,
+                     ref totalCount, pageIndex, pageSize, "CREATETIME DESC").ToList();
             }
-            catch (Exception ee)
+            catch (Exception ex)
             {
-                var a = ee.ToString();
+                Trace.TraceError("入库明细查询失败：" + ex);
             }
-            var total = TotalCount;
-            var rows = lists;
-            return Json(new { total = total, rows = rows }, JsonRequestBehavior.AllowGet);
+
+            return Json(new { total = totalCount, rows = lists }, JsonRequestBehavior.AllowGet);
         }
 
 		[HttpPost]

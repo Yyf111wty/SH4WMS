@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using TR.Model;
@@ -19,9 +20,16 @@ namespace TR.Common
             var requestJson = JsonConvert.SerializeObject(content);
             HttpContent httpContent = new StringContent(requestJson);
             httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            var httpClient = new HttpClient();
-            var responseJson = httpClient.PostAsync(url, httpContent).Result.Content.ReadAsStringAsync().Result;
-            hm = JsonConvert.DeserializeObject<HttpResponseModel>(responseJson);
+            using (httpContent)
+            {
+                using (var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) })
+                {
+                    var response = httpClient.PostAsync(url, httpContent).GetAwaiter().GetResult();
+                    response.EnsureSuccessStatusCode();
+                    var responseJson = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    hm = JsonConvert.DeserializeObject<HttpResponseModel>(responseJson);
+                }
+            }
             return hm;
         }
 

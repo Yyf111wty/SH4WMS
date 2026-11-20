@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.SessionState;
 using TR.ORM.Model;
 using TR.Service;
 using TRWMS_Website.Filters;
@@ -11,6 +12,7 @@ using TRXWMS_Website.Helper;
 namespace TRXWMS_Website.Areas.WMS.Controllers
 {
     [CheckLoginFilter]
+    [SessionState(SessionStateBehavior.ReadOnly)]
     public class LocationController : Controller
     {
         wms_base_locationService service = new wms_base_locationService();

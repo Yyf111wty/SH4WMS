@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -39,10 +39,24 @@ namespace TR.Service
 
 
 		}
-		public  string DeletePutIn(string ID)
+		public string DeletePutIn(string ID)
 		{
 
 			return dbSession.Getwms_bill_putinDal().DeletePutIn(ID);
+		}
+
+		public List<wms_bill_putinbindingheader> GetHeaderPage(
+			PutInModel filter,
+			bool useFinishTimeRange,
+			DateTime? createdFrom,
+			DateTime? createdTo,
+			ref int totalCount,
+			int pageIndex = 1,
+			int pageSize = 30)
+		{
+			return dbSession.Getwms_bill_putinDal().GetHeaderPage(
+				filter, useFinishTimeRange, createdFrom, createdTo,
+				ref totalCount, pageIndex, pageSize);
 		}
 
 	}

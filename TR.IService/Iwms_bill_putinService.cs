@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -17,6 +17,16 @@ namespace TR.IService
 			 int intPageIndex = 0,
 			 int intPageSize = 20,
 			 string strOrderByFileds = null);
+
+		List<wms_bill_putinbindingheader> GetHeaderPage(
+			PutInModel filter,
+			bool useFinishTimeRange,
+			DateTime? createdFrom,
+			DateTime? createdTo,
+			ref int totalCount,
+			int pageIndex = 1,
+			int pageSize = 30);
+
 		string DeletePutIn(string ID);
 	}
 }

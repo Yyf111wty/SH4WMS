@@ -50,19 +50,8 @@ $(document).on('click', '#group_div button', function () {
 //加载按钮
 function loadGroupFormButton(pageId, onLoaded) {
     var MyDiv = document.getElementById("group_div");
-   
-    var token = getCurrentToken(); // 🔥 用这个方法取token
-    $.ajax({
-        type: "get",
-        url: "/Home/GetPermissionBtn",
-        dataType: "json",
-        data: { pageId: pageId },
-        beforeSend: function (xhr) {
-               if (token) {
-                xhr.setRequestHeader("Authorization", "Bearer " + token);
-            }
-        },
-        success: function (result) {
+
+    getPermissionButtons(pageId, function (result) {
             if (result.length == 0) {
                 if (typeof onLoaded === 'function') {
                     onLoaded();
@@ -124,15 +113,107 @@ function loadGroupFormButton(pageId, onLoaded) {
             if (typeof onLoaded === 'function') {
                 onLoaded();
             }
+    });
+}
+
+// 权限按钮缓存：同一标签页内在 TTL 内只请求一次，避免每次切换页面都访问服务端
+var __permBtnMemory = {};
+var __permBtnPending = {};
+var PERM_BTN_CACHE_TTL = 5 * 60 * 1000;
+
+function getPermissionButtonCacheKey(pageId) {
+    return 'PERMBTN_' + (getCurrentToken() || '') + '_' + (pageId || '');
+}
+
+function readPermissionButtonCache(cacheKey) {
+    var memory = __permBtnMemory[cacheKey];
+    if (memory && memory.expireAt > new Date().getTime()) {
+        return memory.values;
+    }
+    try {
+        var raw = sessionStorage.getItem(cacheKey);
+        if (!raw) {
+            return null;
+        }
+        var parsed = JSON.parse(raw);
+        if (!parsed || !parsed.expireAt || parsed.expireAt <= new Date().getTime()) {
+            sessionStorage.removeItem(cacheKey);
+            return null;
+        }
+        __permBtnMemory[cacheKey] = parsed;
+        return parsed.values;
+    } catch (e) {
+        return null;
+    }
+}
+
+function writePermissionButtonCache(cacheKey, values) {
+    var entry = { values: values || [], expireAt: new Date().getTime() + PERM_BTN_CACHE_TTL };
+    __permBtnMemory[cacheKey] = entry;
+    try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(entry));
+    } catch (e) {
+        // 超出存储配额时忽略，仅使用内存缓存
+    }
+}
+
+function clearPermissionButtonCache() {
+    __permBtnMemory = {};
+    __permBtnPending = {};
+    try {
+        var keys = [];
+        for (var i = 0; i < sessionStorage.length; i++) {
+            var key = sessionStorage.key(i);
+            if (key && key.indexOf('PERMBTN_') === 0) {
+                keys.push(key);
+            }
+        }
+        for (var j = 0; j < keys.length; j++) {
+            sessionStorage.removeItem(keys[j]);
+        }
+    } catch (e) {
+    }
+}
+
+function getPermissionButtons(pageId, callback) {
+    var cacheKey = getPermissionButtonCacheKey(pageId);
+    var cached = readPermissionButtonCache(cacheKey);
+    if (cached) {
+        callback(cached);
+        return;
+    }
+
+    if (__permBtnPending[cacheKey]) {
+        __permBtnPending[cacheKey].push(callback);
+        return;
+    }
+    __permBtnPending[cacheKey] = [callback];
+
+    $.ajax({
+        type: "get",
+        url: "/Home/GetPermissionBtn",
+        dataType: "json",
+        data: { pageId: pageId },
+        success: function (result) {
+            var values = result || [];
+            writePermissionButtonCache(cacheKey, values);
+            var queue = __permBtnPending[cacheKey] || [];
+            delete __permBtnPending[cacheKey];
+            for (var i = 0; i < queue.length; i++) {
+                queue[i](values);
+            }
         },
         error: function (message) {
-            if (typeof onLoaded === 'function') {
-                onLoaded();
+            var queue = __permBtnPending[cacheKey] || [];
+            delete __permBtnPending[cacheKey];
+            for (var i = 0; i < queue.length; i++) {
+                queue[i]([]);
             }
-            layer.alert(message, { icon: 6 }); return;
-
+            if (typeof layer !== 'undefined' && layer.alert) {
+                layer.alert(message, { icon: 6 });
+            }
         }
-    })
+    });
 }
 
 function getCurrentToken() {

@@ -1,11 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Web.Mvc;
+using System.Web.SessionState;
 using Newtonsoft.Json;
 using SqlSugar;
 using TR.Model;
+using TR.ORM;
 using TR.ORM.Model;
 using TR.Service;
 using TRXWMS.BILL.DAL;
@@ -14,9 +16,32 @@ using TRXWMS_Website.Helper;
 namespace TRXWMS_Website.Areas.WMS.Controllers
 {
 	//[CheckLoginFilter]
+	[SessionState(SessionStateBehavior.ReadOnly)]
 	public class InventoryController : Controller
 	{
-		private static readonly DbContext DbContext = new DbContext();
+		// 按请求缓存数据库上下文，避免跨请求共享连接与事务。
+
+		private static DbContext DbContext
+		{
+			get
+			{
+				const string cacheKey = "__InventoryController_DbContext__";
+				var httpContext = System.Web.HttpContext.Current;
+				if (httpContext == null)
+				{
+					return new DbContext();
+				}
+
+				var current = httpContext.Items[cacheKey] as DbContext;
+				if (current == null)
+				{
+					current = new DbContext();
+					httpContext.Items[cacheKey] = current;
+				}
+
+				return current;
+			}
+		}
 		private static readonly DateTime DefaultDateTime = DateTime.Parse("1900-01-01");
 
 		wms_bill_inventorybookService service = new wms_bill_inventorybookService();
@@ -174,7 +199,7 @@ WHERE ENABLED = 1 AND OUTENTRANCE IS NOT NULL AND OUTENTRANCE <> ''");
 
 			try
 			{
-				DbContext.Db.Ado.BeginTran();
+				SqlSugarClientFactory.BeginTran();
 
 				foreach (var item in requestItems)
 				{
@@ -337,11 +362,11 @@ WHERE ZONECODE = @ZONECODE AND LOCATIONCODE = @LOCATIONCODE AND OUTENABLED = 1",
 
 				if (successList.Count == 0)
 				{
-					DbContext.Db.Ado.RollbackTran();
+					SqlSugarClientFactory.RollbackTran();
 					return CallBoxResult(false, "未生成任何出库任务", target, items, successList, skipList, stopwatch);
 				}
 
-				DbContext.Db.Ado.CommitTran();
+				SqlSugarClientFactory.CommitTran();
 				return CallBoxResult(
 					true,
 					"成功生成 " + successList.Count + " 条出库任务",
@@ -353,7 +378,7 @@ WHERE ZONECODE = @ZONECODE AND LOCATIONCODE = @LOCATIONCODE AND OUTENABLED = 1",
 			}
 			catch (Exception ex)
 			{
-				DbContext.Db.Ado.RollbackTran();
+				SqlSugarClientFactory.RollbackTran();
 				return CallBoxResult(false, ex.Message, target, items, successList, skipList, stopwatch, ex.Message);
 			}
 		}

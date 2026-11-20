@@ -49,8 +49,8 @@ namespace TRXWMS.BILL.WCS
 
         //public static DbContext context = new DbContext();
 
-        public static DbContext dbcontext = new DbContext();
-        public static MESService mesService = new MESService();
+        public DbContext dbcontext = new DbContext();
+        public MESService mesService = new MESService();
         wms_base_locationService service = new wms_base_locationService();
         wms_bill_putinbindingheaderService servicespec = new wms_bill_putinbindingheaderService();
         wms_bill_putinbindingbodyService servicespecbody = new wms_bill_putinbindingbodyService();
@@ -7953,10 +7953,11 @@ WHERE  a.ZONECODE=@ZONECODE  and  (a.CONTAINER=@CONTAINER  or @CONTAINER='')   a
                             SELECT NEEDLENO, POSITIONCODE
                             FROM wms_needle_inventory
                             WHERE CONTAINER = @CONTAINER
-                              AND STATUS <> 'BIND_CANCELLED'",
+                              AND STATUS <> 'BIND_CANCELLED' and itemcode = @ITEMCODE order by createTIME DESC limit 50",
                             new List<SugarParameter>()
                             {
-                                new SugarParameter("@CONTAINER", item)
+                                new SugarParameter("@CONTAINER", item),
+                                new SugarParameter ("@ITEMCODE", glist.Rows[0][0].ToString())
                             });
 
                         // 数组下标对应盒内槽位，固定保留 50 槽及空槽位的逗号。
@@ -10758,7 +10759,10 @@ VALUES
             string lane = json["lane"].ToString().Trim();
             int enabled = int.Parse(json["enabled"].ToString().Trim());
             //调用研磨机接口获取数据
-            HttpClient client = new HttpClient();
+            HttpClient client = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(10)
+            };
             Console.WriteLine("开始执行，修改巷道状态");
             int enabled1 = enabled == 1 ? 0 : 1;
 
@@ -10797,7 +10801,10 @@ VALUES
             string barlist;     //托盘号
             string code; //规格
             //调用研磨机接口获取数据
-            HttpClient client = new HttpClient();
+            HttpClient client = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(10)
+            };
 
             string json1 = await client.GetStringAsync("http://172.20.63.188:5131/api/qrcode/lookup?qr=" + oldCode);
 

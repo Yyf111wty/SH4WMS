@@ -230,13 +230,14 @@
 </html>
 
 <script src="~/Scripts/formattodata.js"></script>
-<script src="~/Scripts/loadgroupformbutton.js"></script>
+<script src="~/Scripts/loadgroupformbutton.js?v=20261119"></script>
 <script>
 
     //初始化
     $(function () {
         var pageId = GetQueryString('pageId');
-        loadGroupFormButton(pageId);
+        // 按钮渲染失败不能阻断后面的列表加载
+        try { loadGroupFormButton(pageId); } catch (btnErr) { if (window.console) { console.error(btnErr); } }
         // $("#typebody").style.display = 'none';
         //隐藏下半部分，隐藏计数器
         $("#tabsbody").hide();
@@ -599,18 +600,7 @@
     function loadGroupFormButton(pageId) {
         var MyDiv = document.getElementById("group_div");
         var MyDiv1 = document.getElementById("group_div1");
-        var token = getCurrentToken(); // 🔥 用这个方法取token
-        $.ajax({
-            type: "get",
-            url: "/Home/GetPermissionBtn",
-            dataType: "json",
-            data: { pageId: pageId },
-            beforeSend: function (xhr) {
-                if (token) {
-                    xhr.setRequestHeader("Authorization", "Bearer " + token);
-                }
-            },
-            success: function (result) {
+        getPermissionButtons(pageId, function (result) {
                 if (result.length == 0) { return; }
                 for (var i = 0; i < result.length; i++) {
                     if (result[i].NodeName == "新增" || result[i].NodeName == "编辑" || result[i].NodeName == "删除" || result[i].NodeName == "查询" || result[i].NodeName == "报价") {
@@ -648,13 +638,7 @@
                         MyDiv1.innerHTML += button;
                     }
                 }
-            },
-            error: function (message) {
-                //$.messageBox('系统提示', message); return;
-                layer.alert(message, { icon: 6 }); return;
-
-            }
-        })
+        });
     }
 
     function getCurrentToken() {

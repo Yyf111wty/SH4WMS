@@ -31,6 +31,18 @@ namespace TRXWMS.BILL.WCS
         private readonly wms_stocker_taskService _taskService = new wms_stocker_taskService();
         private readonly wms_base_locationService _locationService = new wms_base_locationService();
 
+        // 同一个请求内只加载一次，避免重复全量取数（明细接口原来会各取两遍）
+        private List<wms_bill_putoutheader> _headersCacheAll;
+        private List<wms_stocker_task> _tasksCacheAll;
+        private DateTime? _tasksCacheFrom;
+        private List<wms_stocker_task> _tasksCacheWindow;
+
+        // 只读接口的请求级快照：把原来「每个工单/规格查一次库」改成内存匹配（原来是 180+ 条 SQL）
+        private Dictionary<string, List<wms_bill_putoutheader>> _snapshotByOrder;
+        private Dictionary<string, List<wms_bill_putoutheader>> _stateRowsByOrder;
+        private List<wms_stocker_task> _snapshotPendingPrefetch;
+        private List<SmallDrillWorkOrderTreeNode> _builtGroupCache;
+
         public SmallDrillWorkOrderListResult GetWorkOrders(int historyDays)
         {
             if (historyDays <= 0)
@@ -39,8 +51,12 @@ namespace TRXWMS.BILL.WCS
             }
 
             DateTime historyFrom = DateTime.Now.AddDays(-historyDays);
-            var headers = QuerySmallDrillHeaders(h => h.CREATETIME >= historyFrom);
-            var tasks = QuerySmallDrillTasks();
+            var headers = QuerySmallDrillHeaders(null, historyFrom);
+            // 任务按工单时间窗收窄：任务必定晚于所属工单头，这里再留一个同等长度的缓冲，
+            // 避免把 1.7 万条历史任务全部读进内存（原来会做 O(n²) 内存匹配，页面直接卡死）。
+            var tasks = QuerySmallDrillTasks(historyFrom.AddDays(-historyDays));
+
+            PrepareReadSnapshot(headers);
 
             var orderGroups = headers
                 .GroupBy(h => h.ORDERID.Trim())
@@ -1104,6 +1120,16 @@ VALUES(@ID,@CODE,'1002',@CONTAINER,@START,2,SYSDATE(),'101',@SOURCEORDER,2,0,SYS
             }
 
             string replacedTag = ReplacedContainerTag + container.Trim();
+            var rows = GetSnapshotRows(orderId);
+            if (rows != null)
+            {
+                return rows.Any(h =>
+                    h.SKUSEQ == skuSeq
+                    && h.REMARK != null
+                    && h.REMARK.Contains(ReplacementTag)
+                    && h.REMARK.Contains(replacedTag));
+            }
+
             return _putoutHeaderService.Query(h =>
                     h.ORDERID == orderId
                     && h.SKUSEQ == skuSeq
@@ -1132,6 +1158,12 @@ VALUES(@ID,@CODE,'1002',@CONTAINER,@START,2,SYSDATE(),'101',@SOURCEORDER,2,0,SYS
 
         private bool HasSpec(string orderId, int skuSeq)
         {
+            var rows = GetSnapshotRows(orderId);
+            if (rows != null)
+            {
+                return rows.Any(h => h.SKUSEQ == skuSeq);
+            }
+
             return _putoutHeaderService.Query(h =>
                 h.ORDERID == orderId
                 && h.SKUSEQ == skuSeq
@@ -1168,34 +1200,194 @@ VALUES(@ID,@CODE,'1002',@CONTAINER,@START,2,SYSDATE(),'101',@SOURCEORDER,2,0,SYS
 
         #region 状态与队列
 
-        private List<wms_bill_putoutheader> QuerySmallDrillHeaders(Func<wms_bill_putoutheader, bool> extraFilter = null)
+        private List<wms_bill_putoutheader> QuerySmallDrillHeaders(Func<wms_bill_putoutheader, bool> extraFilter = null, DateTime? createTimeFrom = null, string orderId = null)
         {
-            var list = _putoutHeaderService
-                .Query(h =>
-                    h.REMARK != null
-                    && h.REMARK.Contains(SmallDrillRemark)
-                    && h.TARGET == SmallDrillTarget
-                    && h.ORDERID != null
-                    && h.ORDERID != "")
-                .ToList();
+            // 日期/工单号条件下推到 SQL，避免把 1.7 万条历史出库头全部读进内存再过滤
+            List<wms_bill_putoutheader> list;
+            bool useFullCache = !createTimeFrom.HasValue && string.IsNullOrEmpty(orderId);
+
+            if (useFullCache && _headersCacheAll != null)
+            {
+                list = _headersCacheAll;
+            }
+            else if (createTimeFrom.HasValue && !string.IsNullOrEmpty(orderId))
+            {
+                DateTime from = createTimeFrom.Value;
+                string oid = orderId.Trim();
+                list = _putoutHeaderService
+                    .Query(h =>
+                        h.ORDERID == oid
+                        && h.REMARK != null
+                        && h.REMARK.Contains(SmallDrillRemark)
+                        && h.TARGET == SmallDrillTarget
+                        && h.CREATETIME >= from)
+                    .ToList();
+            }
+            else if (!string.IsNullOrEmpty(orderId))
+            {
+                string oid = orderId.Trim();
+                list = _putoutHeaderService
+                    .Query(h =>
+                        h.ORDERID == oid
+                        && h.REMARK != null
+                        && h.REMARK.Contains(SmallDrillRemark)
+                        && h.TARGET == SmallDrillTarget)
+                    .ToList();
+            }
+            else if (createTimeFrom.HasValue)
+            {
+                DateTime from = createTimeFrom.Value;
+                list = _putoutHeaderService
+                    .Query(h =>
+                        h.REMARK != null
+                        && h.REMARK.Contains(SmallDrillRemark)
+                        && h.TARGET == SmallDrillTarget
+                        && h.ORDERID != null
+                        && h.ORDERID != ""
+                        && h.CREATETIME >= from)
+                    .ToList();
+            }
+            else
+            {
+                list = _putoutHeaderService
+                    .Query(h =>
+                        h.REMARK != null
+                        && h.REMARK.Contains(SmallDrillRemark)
+                        && h.TARGET == SmallDrillTarget
+                        && h.ORDERID != null
+                        && h.ORDERID != "")
+                    .ToList();
+            }
 
             if (extraFilter != null)
             {
                 list = list.Where(extraFilter).ToList();
             }
+            else if (useFullCache)
+            {
+                _headersCacheAll = list;
+            }
 
             return list;
         }
 
-        private List<wms_stocker_task> QuerySmallDrillTasks()
+        private List<wms_stocker_task> QuerySmallDrillTasks(DateTime? createTimeFrom = null, string orderInfoPrefix = null)
         {
-            return _taskService
-                .Query(t =>
-                    t.TYPE == 2
-                    && t.ENDTAXI == SmallDrillTarget
-                    && t.ORDERINFO != null
-                    && t.ORDERINFO != "")
+            bool useFullCache = !createTimeFrom.HasValue && string.IsNullOrEmpty(orderInfoPrefix);
+
+            if (useFullCache && _tasksCacheAll != null)
+            {
+                return _tasksCacheAll;
+            }
+
+            if (createTimeFrom.HasValue && string.IsNullOrEmpty(orderInfoPrefix)
+                && _tasksCacheWindow != null
+                && _tasksCacheFrom.HasValue
+                && _tasksCacheFrom.Value <= createTimeFrom.Value)
+            {
+                return _tasksCacheWindow;
+            }
+
+            List<wms_stocker_task> list;
+            if (!string.IsNullOrEmpty(orderInfoPrefix))
+            {
+                string prefix = orderInfoPrefix;
+                list = _taskService
+                    .Query(t =>
+                        t.TYPE == 2
+                        && t.ENDTAXI == SmallDrillTarget
+                        && t.ORDERINFO != null
+                        && t.ORDERINFO != ""
+                        && t.ORDERINFO.StartsWith(prefix))
+                    .ToList();
+            }
+            else if (createTimeFrom.HasValue)
+            {
+                DateTime from = createTimeFrom.Value;
+                list = _taskService
+                    .Query(t =>
+                        t.TYPE == 2
+                        && t.ENDTAXI == SmallDrillTarget
+                        && t.ORDERINFO != null
+                        && t.ORDERINFO != ""
+                        && t.CREATETIME >= from)
+                    .ToList();
+                _tasksCacheFrom = from;
+                _tasksCacheWindow = list;
+            }
+            else
+            {
+                list = _taskService
+                    .Query(t =>
+                        t.TYPE == 2
+                        && t.ENDTAXI == SmallDrillTarget
+                        && t.ORDERINFO != null
+                        && t.ORDERINFO != "")
+                    .ToList();
+                _tasksCacheAll = list;
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// 只读接口入口调用：把后续上百次「按工单查一次库」改成内存匹配。
+        /// </summary>
+        private void PrepareReadSnapshot(List<wms_bill_putoutheader> headers)
+        {
+            _snapshotByOrder = headers
+                .Where(h => !string.IsNullOrWhiteSpace(h.ORDERID))
+                .GroupBy(h => h.ORDERID.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+            var ids = _snapshotByOrder.Keys.ToList();
+            if (ids.Count == 0)
+            {
+                _stateRowsByOrder = new Dictionary<string, List<wms_bill_putoutheader>>(StringComparer.OrdinalIgnoreCase);
+                return;
+            }
+
+            // 未结案/进行中的单头不限时间窗，单独用一条 IN 查询取回，保证与原逻辑完全一致
+            var stateRows = _putoutHeaderService
+                .Query(h =>
+                    ids.Contains(h.ORDERID)
+                    && h.REMARK != null
+                    && h.REMARK.Contains(SmallDrillRemark)
+                    && h.TARGET == SmallDrillTarget
+                    && h.STATE >= 0
+                    && h.STATE <= 2)
                 .ToList();
+
+            _stateRowsByOrder = stateRows
+                .Where(h => !string.IsNullOrWhiteSpace(h.ORDERID))
+                .GroupBy(h => h.ORDERID.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private List<wms_bill_putoutheader> GetSnapshotRows(string orderId)
+        {
+            if (_snapshotByOrder == null)
+            {
+                return null;
+            }
+
+            List<wms_bill_putoutheader> rows;
+            return _snapshotByOrder.TryGetValue((orderId ?? string.Empty).Trim(), out rows)
+                ? rows
+                : new List<wms_bill_putoutheader>();
+        }
+
+        private List<wms_bill_putoutheader> GetStateRows(string orderId)
+        {
+            if (_stateRowsByOrder == null)
+            {
+                return null;
+            }
+
+            List<wms_bill_putoutheader> rows;
+            return _stateRowsByOrder.TryGetValue((orderId ?? string.Empty).Trim(), out rows)
+                ? rows
+                : new List<wms_bill_putoutheader>();
         }
 
         private static string ResolveQueueStatus(
@@ -1438,6 +1630,12 @@ VALUES(@ID,@CODE,'1002',@CONTAINER,@START,2,SYSDATE(),'101',@SOURCEORDER,2,0,SYS
 
         private bool HasBlockingWork(string orderId, int? skuSeq)
         {
+            var rows = GetStateRows(orderId);
+            if (rows != null)
+            {
+                return rows.Any(h => skuSeq == null || h.SKUSEQ == skuSeq.Value);
+            }
+
             return _putoutHeaderService.Query(h =>
                     h.ORDERID == orderId
                     && (skuSeq == null || h.SKUSEQ == skuSeq.Value)
@@ -1660,6 +1858,12 @@ VALUES(@ID,@CODE,'1002',@CONTAINER,@START,2,SYSDATE(),'101',@SOURCEORDER,2,0,SYS
 
         private bool HasPutoutHeaderInProgress(string orderId)
         {
+            var rows = GetStateRows(orderId);
+            if (rows != null)
+            {
+                return rows.Any(h => h.STATE == 1 || h.STATE == 2);
+            }
+
             return _putoutHeaderService.Query(h =>
                     h.ORDERID == orderId
                     && h.REMARK != null
@@ -1676,19 +1880,28 @@ VALUES(@ID,@CODE,'1002',@CONTAINER,@START,2,SYSDATE(),'101',@SOURCEORDER,2,0,SYS
 
         private List<SmallDrillWorkOrderTreeNode> BuildWorkOrderGroupList(int historyDays)
         {
+            if (_builtGroupCache != null)
+            {
+                return _builtGroupCache;
+            }
+
             if (historyDays <= 0)
             {
                 historyDays = 7;
             }
 
             DateTime historyFrom = DateTime.Now.AddDays(-historyDays);
-            var headers = QuerySmallDrillHeaders(h => h.CREATETIME >= historyFrom);
-            var tasks = QuerySmallDrillTasks();
-            return headers
+            var headers = QuerySmallDrillHeaders(null, historyFrom);
+            var tasks = QuerySmallDrillTasks(historyFrom.AddDays(-historyDays));
+            PrepareReadSnapshot(headers);
+
+            _builtGroupCache = headers
                 .GroupBy(h => h.ORDERID.Trim())
                 .Select(g => BuildWorkOrderNode(g.Key, g.ToList(), tasks))
                 .OrderBy(n => n.CreateTime)
                 .ToList();
+
+            return _builtGroupCache;
         }
 
         private string ResolveNextWaitingOrderIdFallback(string currentOrderId)
@@ -1701,15 +1914,21 @@ VALUES(@ID,@CODE,'1002',@CONTAINER,@START,2,SYSDATE(),'101',@SOURCEORDER,2,0,SYS
         private string FindNextPendingOrderId(string currentOrderId)
         {
             currentOrderId = (currentOrderId ?? string.Empty).Trim();
-            var pendingTasks = _taskService
-                .Query(t =>
-                    t.TYPE == 2
-                    && t.ENDTAXI == SmallDrillTarget
-                    && t.STATE == 0
-                    && t.ORDERINFO != null
-                    && t.ORDERINFO != "")
-                .Where(t => IsPreFetchTaskMode(t) && t.SKUSEQ == 1)
-                .ToList();
+
+            if (_snapshotPendingPrefetch == null)
+            {
+                _snapshotPendingPrefetch = _taskService
+                    .Query(t =>
+                        t.TYPE == 2
+                        && t.ENDTAXI == SmallDrillTarget
+                        && t.STATE == 0
+                        && t.ORDERINFO != null
+                        && t.ORDERINFO != "")
+                    .Where(t => IsPreFetchTaskMode(t) && t.SKUSEQ == 1)
+                    .ToList();
+            }
+
+            var pendingTasks = _snapshotPendingPrefetch;
 
             return pendingTasks
                 .Select(t => new { Task = t, OrderId = ExtractOrderIdFromOrderInfo(t.ORDERINFO) })

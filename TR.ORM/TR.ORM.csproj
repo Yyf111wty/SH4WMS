@@ -125,6 +125,7 @@
       <DependentUpon>Models.tt</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="DbTransactionScope.cs" />
     <Compile Include="SugarContext.cs" />
     <Compile Include="SqlSugarClientFactory.cs" />
     <Compile Include="sys_exception.cs">

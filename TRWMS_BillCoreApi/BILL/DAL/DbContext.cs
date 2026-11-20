@@ -5,11 +5,13 @@ namespace TRXWMS.BILL.DAL
 {
     public class DbContext
     {
-        public SqlSugarClient Db { get; private set; }
-
-        public DbContext()
+        /// <summary>
+        /// 每次访问都取当前请求的数据库客户端。
+        /// 不要在构造函数里缓存，否则实例被静态字段引用时会跨请求共享连接与事务。
+        /// </summary>
+        public SqlSugarClient Db
         {
-            Db = SugarContext.GetInstance();
+            get { return SugarContext.GetInstance(); }
         }
     }
 }
