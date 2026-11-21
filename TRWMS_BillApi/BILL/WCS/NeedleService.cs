@@ -179,11 +179,12 @@ namespace TRXWMS.BILL.WCS
         /// 其余状态即使原盒没有库存台账，也提示原盒号并拒绝重复绑定。同盒沿用既有状态校验。
         /// 拒绝均抛异常整笔回滚，不动原行不清预占；每盒批量查询并锁定旧针，全部校验通过后批量写入，共 4~6 次数据库调用。
         /// </summary>
-        public static int BindNeedles(SqlSugarClient db, string container, string itemcode,
+        public static int BindNeedles(SqlSugarClient db, string container, string itemcode, string inboundHeaderId,
                                       string inboundSource, JArray needles, string creator)
         {
             if (needles == null || needles.Count == 0) return 0;
             if (string.IsNullOrEmpty(container)) throw new Exception("单针绑定失败：盒号不能为空!");
+            if (string.IsNullOrWhiteSpace(inboundHeaderId)) throw new Exception("单针绑定失败：入库单头ID不能为空!");
 
             HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             HashSet<int> seenPos = new HashSet<int>(); // A01：同盒槽位查重
@@ -280,9 +281,9 @@ SELECT b.BINDINDEX, i.ID, i.STATUS, i.ITEMCODE, i.CONTAINER, i.POSITIONCODE, i.E
             }
 
             // 所有状态闸门通过后再批量写入。旧针履历使用已锁定行的变更前镜像，并先于更新写入。
-            InsertBindNeedles(db, inserts, container, itemcode, inboundSource, creator);
+            InsertBindNeedles(db, inserts, container, itemcode, inboundHeaderId, inboundSource, creator);
             WriteBindTransactions(db, batch, container, itemcode, inboundSource, creator);
-            UpdateBindNeedles(db, updates, container, itemcode, inboundSource, creator);
+            UpdateBindNeedles(db, updates, container, itemcode, inboundHeaderId, inboundSource, creator);
 
             // 换绑清理：本盒旧 PENDING 且不在新清单内的针 → BIND_CANCELLED
             if (batch.Count > 0)
@@ -330,10 +331,11 @@ UPDATE wms_needle_inventory
         }
 
         private static void InsertBindNeedles(SqlSugarClient db, List<BindNeedle> needles, string container,
-                                              string itemcode, string inboundSource, string creator)
+                                              string itemcode, string inboundHeaderId, string inboundSource, string creator)
         {
             if (needles.Count == 0) return;
             List<SugarParameter> ps = BuildBindParams(container, itemcode, inboundSource, creator);
+            ps.Add(new SugarParameter("@inboundHeaderId", inboundHeaderId));
             List<string> values = new List<string>();
             for (int i = 0; i < needles.Count; i++)
             {
@@ -341,7 +343,7 @@ UPDATE wms_needle_inventory
                 ps.Add(new SugarParameter("@no" + i, needles[i].No));
                 ps.Add(new SugarParameter("@pos" + i, needles[i].Position));
                 values.Add("(@id" + i + ", @no" + i + ", @itemcode, @ctn, @pos" + i
-                    + ", 'INBOUND_PENDING', @src, @ctn, 1, @cr, sysdate(), @cr, sysdate())");
+                    + ", 'INBOUND_PENDING', @src, @inboundHeaderId, 1, @cr, sysdate(), @cr, sysdate())");
             }
             int inserted = db.Ado.ExecuteCommand(@"
 INSERT INTO wms_needle_inventory
@@ -352,10 +354,11 @@ VALUES " + string.Join(",", values.ToArray()), ps);
         }
 
         private static void UpdateBindNeedles(SqlSugarClient db, List<BindNeedle> needles, string container,
-                                              string itemcode, string inboundSource, string creator)
+                                              string itemcode, string inboundHeaderId, string inboundSource, string creator)
         {
             if (needles.Count == 0) return;
             List<SugarParameter> ps = BuildBindParams(container, itemcode, inboundSource, creator);
+            ps.Add(new SugarParameter("@inboundHeaderId", inboundHeaderId));
             List<string> rows = new List<string>();
             for (int i = 0; i < needles.Count; i++)
             {
@@ -367,7 +370,7 @@ VALUES " + string.Join(",", values.ToArray()), ps);
 UPDATE wms_needle_inventory i
   JOIN (" + string.Join(" UNION ALL ", rows.ToArray()) + @") b ON i.ID=b.ID
    SET i.ITEMCODE=@itemcode, i.CONTAINER=@ctn, i.POSITIONCODE=b.POSITIONCODE, i.STATUS='INBOUND_PENDING',
-       i.INBOUNDSOURCE=@src, i.INBOUNDORDER=@ctn,
+       i.INBOUNDSOURCE=@src, i.INBOUNDORDER=@inboundHeaderId,
        i.RESERVEORDER=NULL, i.OUTBOUNDORDER=NULL, i.OUTMACHINENO=NULL, i.OUTTARGET=NULL,
        i.ENABLED=1, i.LASTEDITOR=@cr, i.LASTEDITTIME=sysdate()", ps);
             if (updated != needles.Count) throw new Exception("单针批量绑定更新失败（更新数量与清单不一致）!");

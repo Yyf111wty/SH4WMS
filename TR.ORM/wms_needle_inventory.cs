@@ -54,7 +54,7 @@ namespace TR.ORM.Model
         public string INBOUNDSOURCE { get; set; }
 
         /// <summary>
-        /// 入库单号
+        /// 最近一次绑定的入库单头 ID（wms_bill_putinbindingheader.ID）
         /// </summary>
         public string INBOUNDORDER { get; set; }
 

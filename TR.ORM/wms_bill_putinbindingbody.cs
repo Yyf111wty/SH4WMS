@@ -60,7 +60,7 @@ namespace TR.ORM.Model
         public string TASK_NO_SN { get; set; }
 
         /// <summary>
-        /// 
+        /// 针数
         /// </summary>
         public int QTY { get; set; }
 

@@ -10372,6 +10372,7 @@ VALUES
                 //bool isValid = true;
                 if (isValid)
                 {
+                    SqlSugarClient db = null;
                     try
                     {
                         //string mc = json["cboSpec"].ToString().Trim(); //磨次
@@ -10385,7 +10386,6 @@ VALUES
                         {
                             needleArr = NeedleService.ParseNeedleString(needlesToken.ToString());
                         }
-                        bool bindOkThis = false;
                         string[] list = null;
                         if (barlist.Substring(barlist.Length - 1, 1) != "/")
                         {
@@ -10399,24 +10399,25 @@ VALUES
                         }
                         // ===== A01：多盒请求针归属强校验（无归属/归属不在本次盒号列表 → 整笔拒绝，不开事务不留数据） =====
                         NeedleService.FilterByContainerStrict(needleArr, list[0], list);
-                        dbcontext.Db.Ado.BeginTran();
+                        // 固定事务客户端，避免单条 SQL 的连接重试绕过事务。
+                        db = dbcontext.Db;
+                        db.Ado.BeginTran();
                         foreach (string s in list)
                         {
-                            bindOkThis = false;
                             // string[] list = txtBarcode.Text.Trim().Split(',');
                             //判定是否重复绑定
-                            var barcode = service.Query(x => x.CONTAINER == s);
-                            var spec = servicespec.Query(x => x.CONTAINER == s && x.STATE < 2);
+                            bool inStock = db.Queryable<wms_base_location>().Where(x => x.CONTAINER == s).Any();
+                            var existingHeader = db.Queryable<wms_bill_putinbindingheader>().Where(x => x.CONTAINER == s && x.STATE < 2).ToList().FirstOrDefault();
 
                             if (!s.StartsWith("W", StringComparison.OrdinalIgnoreCase))
                             {
                                 reslutJson.success = false;
                                 reslutJson.msg = s + "入库单生成失败：托盘码不符合规则，请更换托盘重新入库!";
-                                dbcontext.Db.Ado.RollbackTran(); // 单针改造：事务已开启，返回前必须回滚
+                                db.Ado.RollbackTran(); // 单针改造：事务已开启，返回前必须回滚
                                 return reslutJson;
                             }
 
-                            if (barcode.Count > 0)
+                            if (inStock)
                             {
                                 reslutJson.success = false;
                                 reslutJson.msg = s + "入库单生成失败：库中已存在该条码!";
@@ -10424,53 +10425,28 @@ VALUES
                             else
                             {
 
-                                if (spec != null && spec.Count > 0)//已绑定则覆盖
+                                var needlesForBox = NeedleService.FilterByContainerStrict(needleArr, s, list)
+                                    ?? NeedleService.GenerateTempNeedles(NeedleService.TEMP_NEEDLE_COUNT);
+                                int needleQty = needlesForBox.Count;
+                                string inboundHeaderId;
+                                if (existingHeader != null)//已绑定则覆盖
                                 {
-                                    wms_bill_putinbindingheader oldheadmodel = servicespec.Query(x => x.CONTAINER == s && x.STATE < 2).FirstOrDefault();
-                                    wms_bill_putinbindingbody oldbodymodel = servicespecbody.Query(x => x.HEADERID == oldheadmodel.ID).FirstOrDefault();
-                                    // wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
-                                    wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
-                                    //headmodel.ID = oldheadmodel.ID;
-                                    //headmodel.SOURCEORDER = oldheadmodel.SOURCEORDER;
-                                    //headmodel.CONTAINER = oldheadmodel.CONTAINER;
-                                    //headmodel.CONTAINERTYPE = oldheadmodel.CONTAINERTYPE;
-                                    //headmodel.QUESTFLAG = oldheadmodel.QUESTFLAG;
-                                    //headmodel.STATE = oldheadmodel.STATE;
-                                    //headmodel.TARGET = oldheadmodel.TARGET;
-                                    //headmodel.ENABLED = oldheadmodel.ENABLED;
-                                    //headmodel.REMARK = oldheadmodel.REMARK;
-                                    //headmodel.CREATOR = oldheadmodel.CREATOR;
-                                    //headmodel.CREATETIME = DateTime.Now;
-                                    bodymodel.ID = oldbodymodel.ID;
-                                    bodymodel.HEADERID = oldbodymodel.HEADERID;
+                                    inboundHeaderId = existingHeader.ID;
+                                    var bodymodel = db.Queryable<wms_bill_putinbindingbody>().Where(x => x.HEADERID == inboundHeaderId).ToList().FirstOrDefault();
+                                    if (bodymodel == null) throw new Exception("找不到入库单明细!");
                                     bodymodel.ITEMCODE = code;
+                                    bodymodel.QTY = needleQty;
                                     bodymodel.CREATOR = "手持扫描";
                                     bodymodel.CREATETIME = DateTime.Now;
-                                    var results = servicespecbody.Update(bodymodel);
-                                    if (results)
-                                    {
-                                        reslutJson.success = true;
-                                        reslutJson.msg = code + "入库单生成成功!";
-                                        bindOkThis = true; // 单针改造：覆盖绑定成功，允许写针清单
-                                    }
-                                    else
-                                    {
-                                        reslutJson.success = false;
-                                        reslutJson.msg = "入库单生成失败：导入数据错误!";
-                                    }
+                                    if (db.Updateable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
                                 }
                                 else
                                 {
-
-                                    //插入数据，提示绑定成功  
-                                    string id = Guid.NewGuid().ToString("D");
+                                    inboundHeaderId = Guid.NewGuid().ToString("D");
                                     wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
                                     wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
-                                    //         INSERT INTO wms_bill_putinbindingbody(ID, HEADERID,ITEMCODE,LOTWEIGHT, TASK_NO_SN, CREATOR, CREATETIME)
-                                    //VALUES
-                                    //(@ID, @HEADERID, @ITEMCODE, @LOT, @WEIGHT, @TASK_NO_SN, 'SAP', sysdate())
 
-                                    headmodel.ID = id;
+                                    headmodel.ID = inboundHeaderId;
                                     headmodel.SOURCEORDER = s;
                                     headmodel.CONTAINER = s;
                                     headmodel.CONTAINERTYPE = "0";
@@ -10483,51 +10459,29 @@ VALUES
                                     headmodel.CREATETIME = DateTime.Now;
                                     headmodel.TASKTYPE = SUPPLIERID;
                                     headmodel.Specifications = specc;
-                                    var results = (servicespec.InsertReturnIdentity(headmodel) == 1);
+                                    if (db.Insertable(headmodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
 
                                     string bodyid = Guid.NewGuid().ToString("D");
                                     bodymodel.ID = bodyid;
-                                    bodymodel.HEADERID = id;
+                                    bodymodel.HEADERID = inboundHeaderId;
                                     bodymodel.ITEMCODE = code;
+                                    bodymodel.QTY = needleQty;
                                     bodymodel.CREATOR = "手持扫描";
                                     bodymodel.CREATETIME = DateTime.Now;
-                                    var results1 = (servicespecbody.InsertReturnIdentity(bodymodel) == 1);
-                                    if (results & results1)
-                                    {
-
-                                        reslutJson.success = true;
-                                        reslutJson.msg = code + "入库单生成成功!";
-                                        bindOkThis = true; // 单针改造：新绑定成功，允许写针清单
-                                    }
-                                    else
-                                    {
-                                        reslutJson.success = false;
-                                        reslutJson.msg = "入库单生成失败：导入数据错误!";
-
-                                    }
+                                    if (db.Insertable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
                                 }
 
-
-                            }
-
-                            // ===== 单针改造：绑定/换绑本盒针清单（Needles 为 null/空时自动生成 50 个 T-随机字符-位置号 临时针号） =====
-                            if (bindOkThis)
-                            {
-                                // A01：严格归属过滤（归属其它盒的条目跳过；多盒无归属/错误归属已在事务前拒绝）
-                                var needlesForBox = NeedleService.FilterByContainerStrict(needleArr, s, list);
-                                if (needlesForBox == null || needlesForBox.Count == 0)
-                                {
-                                    needlesForBox = NeedleService.GenerateTempNeedles(NeedleService.TEMP_NEEDLE_COUNT);
-                                }
-                                NeedleService.BindNeedles(dbcontext.Db, s, code, SUPPLIERID, needlesForBox, "手持扫描");
+                                NeedleService.BindNeedles(db, s, code, inboundHeaderId, SUPPLIERID, needlesForBox, "手持扫描");
+                                reslutJson.success = true;
+                                reslutJson.msg = code + "入库单生成成功!";
                             }
 
                         }
-                        dbcontext.Db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
+                        db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
                     }
                     catch (Exception ee)
                     {
-                        dbcontext.Db.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
+                        db?.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
                         reslutJson.success = false;
                         reslutJson.msg = "入库单生成失败：" + ee.Message;
                     }
@@ -10611,6 +10565,7 @@ VALUES
                 LOGService.WriteWcsRequestLog(context, json, "规格针数(" + declaredNeedleQty + ")与Needles清单条数(" + needleArr.Count + ")不一致，以清单为准", "备刀机回流入库");
             }
 
+            SqlSugarClient db = null;
             try
             {
                 // ===== A01：归属校验（回流单盒：Needles 条目若带 Container/Barcode 字段必须等于本盒号，错误归属拒绝） =====
@@ -10623,64 +10578,51 @@ VALUES
                     return reslutJson;
                 }
 
-                bool bindOkThis = false;
-                dbcontext.Db.Ado.BeginTran(); // 单针改造：单据+针清单同事务
+                db = dbcontext.Db;
+                db.Ado.BeginTran(); // 单针改造：单据+针清单同事务
 
                 //判定是否重复入库（与 CreatePutInfo 同口径：库存台账 + 未完成入库单）
-                var barcodeInStock = service.Query(x => x.CONTAINER == barcode);
-                var spec = servicespec.Query(x => x.CONTAINER == barcode && x.STATE < 2);
+                bool inStock = db.Queryable<wms_base_location>().Where(x => x.CONTAINER == barcode).Any();
+                var existingHeader = db.Queryable<wms_bill_putinbindingheader>().Where(x => x.CONTAINER == barcode && x.STATE < 2).ToList().FirstOrDefault();
+                int needleQty = needleArr.Count;
+                string inboundHeaderId = null;
                 if (!barcode.StartsWith("W", StringComparison.OrdinalIgnoreCase))
                 {
                     reslutJson.Success = false;
                     reslutJson.Message = barcode + "回流入库单生成失败：托盘码不符合规则，请更换托盘重新入库!";
                 }
-                else if (barcodeInStock.Count > 0)
+                else if (inStock)
                 {
                     reslutJson.Success = false;
                     reslutJson.Message = barcode + "回流入库单生成失败：库中已存在该条码!";
                 }
-                else if (spec != null && spec.Count > 0)//已有未完成入库单则覆盖
+                else if (existingHeader != null)//已有未完成入库单则覆盖
                 {
-                    wms_bill_putinbindingheader oldheadmodel = servicespec.Query(x => x.CONTAINER == barcode && x.STATE < 2).FirstOrDefault();
-                    wms_bill_putinbindingbody oldbodymodel = servicespecbody.Query(x => x.HEADERID == oldheadmodel.ID).FirstOrDefault();
+                    inboundHeaderId = existingHeader.ID;
+                    var bodymodel = db.Queryable<wms_bill_putinbindingbody>().Where(x => x.HEADERID == inboundHeaderId).ToList().FirstOrDefault();
+                    if (bodymodel == null) throw new Exception("找不到入库单明细!");
                     //覆盖单头：规格/任务类型/备注刷新为回流口径
-                    wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
-                    headmodel.ID = oldheadmodel.ID;
-                    headmodel.TASKTYPE = "备刀机回流";
-                    headmodel.Specifications = specc;
-                    headmodel.REMARK = "备刀机回流入库";
-                    headmodel.LASTEDITOR = "备刀机回流";
-                    headmodel.LASTEDITTIME = DateTime.Now;
-                    var resultsHead = servicespec.Update(headmodel);
+                    existingHeader.TASKTYPE = "备刀机回流";
+                    existingHeader.Specifications = specc;
+                    existingHeader.REMARK = "备刀机回流入库";
+                    existingHeader.LASTEDITOR = "备刀机回流";
+                    existingHeader.LASTEDITTIME = DateTime.Now;
+                    if (db.Updateable(existingHeader).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
                     //覆盖明细：物料码=去掉针数尾段的规格
-                    wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
-                    bodymodel.ID = oldbodymodel.ID;
-                    bodymodel.HEADERID = oldbodymodel.HEADERID;
                     bodymodel.ITEMCODE = code;
+                    bodymodel.QTY = needleQty;
                     bodymodel.CREATOR = "备刀机回流";
                     bodymodel.CREATETIME = DateTime.Now;
-                    var results = servicespecbody.Update(bodymodel);
-                    if (resultsHead && results)
-                    {
-                        reslutJson.Success = true;
-                        reslutJson.Code = 1;
-                        reslutJson.Message = code + "回流入库单生成成功!";
-                        bindOkThis = true; // 单针改造：覆盖绑定成功，允许写针清单
-                    }
-                    else
-                    {
-                        reslutJson.Success = false;
-                        reslutJson.Message = "回流入库单生成失败：导入数据错误!";
-                    }
+                    if (db.Updateable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
                 }
                 else
                 {
                     //插入数据，提示绑定成功（字段口径与 CreatePutInfo 一致，CREATOR/TASKTYPE/REMARK 换为回流标识）
-                    string id = Guid.NewGuid().ToString("D");
+                    inboundHeaderId = Guid.NewGuid().ToString("D");
                     wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
                     wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
 
-                    headmodel.ID = id;
+                    headmodel.ID = inboundHeaderId;
                     headmodel.SOURCEORDER = barcode;
                     headmodel.CONTAINER = barcode;
                     headmodel.CONTAINERTYPE = "0";
@@ -10693,58 +10635,35 @@ VALUES
                     headmodel.CREATETIME = DateTime.Now;
                     headmodel.TASKTYPE = "备刀机回流"; // completeEnterKu 以此写台账 SUPPLIERID / 针表 INBOUNDSOURCE
                     headmodel.Specifications = specc;
-                    var results = (servicespec.InsertReturnIdentity(headmodel) == 1);
+                    if (db.Insertable(headmodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
 
                     string bodyid = Guid.NewGuid().ToString("D");
                     bodymodel.ID = bodyid;
-                    bodymodel.HEADERID = id;
+                    bodymodel.HEADERID = inboundHeaderId;
                     bodymodel.ITEMCODE = code;
+                    bodymodel.QTY = needleQty;
                     bodymodel.CREATOR = "备刀机回流";
                     bodymodel.CREATETIME = DateTime.Now;
-                    var results1 = (servicespecbody.InsertReturnIdentity(bodymodel) == 1);
-                    if (results & results1)
-                    {
-                        reslutJson.Success = true;
-                        reslutJson.Code = 1;
-                        reslutJson.Message = code + "回流入库单生成成功!";
-                        bindOkThis = true; // 单针改造：新绑定成功，允许写针清单
-                    }
-                    else
-                    {
-                        reslutJson.Success = false;
-                        reslutJson.Message = "回流入库单生成失败：导入数据错误!";
-                    }
+                    if (db.Insertable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
                 }
 
                 // ===== 单针改造：绑定/换绑本盒针清单（回流必须携带真实针号，空槽位已在解析时跳过，不做临时针兜底） =====
-                if (bindOkThis)
+                if (inboundHeaderId != null)
                 {
-                    try
-                    {
-                        NeedleService.BindNeedles(dbcontext.Db, barcode, code, "备刀机回流", needleArr, "备刀机回流");
-                    }
-                    catch (Exception ne)
-                    {
-                        dbcontext.Db.Ado.RollbackTran(); // A01：针清单校验失败（针号/槽位/重复/归属）→ 整笔回滚不留数据
-                        reslutJson.Success = false;
-                        reslutJson.Message = "回流入库单生成失败：" + ne.Message;
-                        LOGService.WriteWcsRequestLog(context, json, reslutJson.Message, "备刀机回流入库");
-                        return reslutJson;
-                    }
-                }
-
-                if (reslutJson.Success)
-                {
-                    dbcontext.Db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
+                    NeedleService.BindNeedles(db, barcode, code, inboundHeaderId, "备刀机回流", needleArr, "备刀机回流");
+                    db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
+                    reslutJson.Success = true;
+                    reslutJson.Code = 1;
+                    reslutJson.Message = code + "回流入库单生成成功!";
                 }
                 else
                 {
-                    dbcontext.Db.Ado.RollbackTran(); // 失败分支不提交，整体回滚
+                    db.Ado.RollbackTran(); // 失败分支不提交，整体回滚
                 }
             }
             catch (Exception ee)
             {
-                dbcontext.Db.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
+                db?.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
                 reslutJson.Success = false;
                 reslutJson.Message = "回流入库单生成失败：" + ee.Message;
             }
@@ -10835,12 +10754,12 @@ VALUES
             }
             else
             {
+                SqlSugarClient db = null;
                 try
                 {
                     // ===== 单针改造：研磨机换码入库，可选针清单参数 Needles（不传则完全维持旧行为）；单据与针清单同事务 =====
                     JToken needlesToken = json["Needles"] != null ? json["Needles"] : json["needles"];
                     JArray needleArr = needlesToken as JArray;
-                    bool bindOkThis = false;
                     string[] list = null;
                     if (barlist.Substring(barlist.Length - 1, 1) != "/")
                     {
@@ -10854,14 +10773,14 @@ VALUES
                     }
                     // ===== A01：多盒请求针归属强校验（无归属/归属不在本次盒号列表 → 整笔拒绝，不开事务不留数据） =====
                     NeedleService.FilterByContainerStrict(needleArr, list[0], list);
-                    dbcontext.Db.Ado.BeginTran();
+                    db = dbcontext.Db;
+                    db.Ado.BeginTran();
                     foreach (string s in list)
                     {
-                        bindOkThis = false;
                         //判定是否重复绑定
-                        var barcode = service.Query(x => x.CONTAINER == s);
-                        var spec = servicespec.Query(x => x.CONTAINER == s && x.STATE < 2);
-                        if (barcode.Count > 0)
+                        bool inStock = db.Queryable<wms_base_location>().Where(x => x.CONTAINER == s).Any();
+                        var existingHeader = db.Queryable<wms_bill_putinbindingheader>().Where(x => x.CONTAINER == s && x.STATE < 2).ToList().FirstOrDefault();
+                        if (inStock)
                         {
                             reslutJson.success = false;
                             reslutJson.msg = s + "入库单生成失败：库中已存在该条码!";
@@ -10869,38 +10788,28 @@ VALUES
                         else
                         {
 
-                            if (spec != null && spec.Count > 0)//已绑定则覆盖
+                            var needlesForBox = NeedleService.FilterByContainerStrict(needleArr, s, list)
+                                ?? NeedleService.GenerateTempNeedles(NeedleService.TEMP_NEEDLE_COUNT);
+                            int needleQty = needlesForBox.Count;
+                            string inboundHeaderId;
+                            if (existingHeader != null)//已绑定则覆盖
                             {
-                                wms_bill_putinbindingheader oldheadmodel = servicespec.Query(x => x.CONTAINER == s && x.STATE < 2).FirstOrDefault();
-                                wms_bill_putinbindingbody oldbodymodel = servicespecbody.Query(x => x.HEADERID == oldheadmodel.ID).FirstOrDefault();
-                                wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
-                                bodymodel.ID = oldbodymodel.ID;
-                                bodymodel.HEADERID = oldbodymodel.HEADERID;
+                                inboundHeaderId = existingHeader.ID;
+                                var bodymodel = db.Queryable<wms_bill_putinbindingbody>().Where(x => x.HEADERID == inboundHeaderId).ToList().FirstOrDefault();
+                                if (bodymodel == null) throw new Exception("找不到入库单明细!");
                                 bodymodel.ITEMCODE = code;
+                                bodymodel.QTY = needleQty;
                                 bodymodel.CREATOR = "手持扫描";
                                 bodymodel.CREATETIME = DateTime.Now;
-                                var results = servicespecbody.Update(bodymodel);
-                                if (results)
-                                {
-                                    reslutJson.success = true;
-                                    reslutJson.msg = code + "入库单生成成功!";
-                                    bindOkThis = true; // 单针改造：覆盖绑定成功，允许写针清单
-                                }
-                                else
-                                {
-                                    reslutJson.success = false;
-                                    reslutJson.msg = "入库单生成失败：导入数据错误!";
-                                }
+                                if (db.Updateable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
                             }
                             else
                             {
-
-                                //插入数据，提示绑定成功  
-                                string id = Guid.NewGuid().ToString("D");
+                                inboundHeaderId = Guid.NewGuid().ToString("D");
                                 wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
                                 wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
 
-                                headmodel.ID = id;
+                                headmodel.ID = inboundHeaderId;
                                 headmodel.SOURCEORDER = s;
                                 headmodel.CONTAINER = s;
                                 headmodel.CONTAINERTYPE = "0";
@@ -10912,51 +10821,29 @@ VALUES
                                 headmodel.CREATOR = "手持扫描";
                                 headmodel.CREATETIME = DateTime.Now;
                                 headmodel.Specifications = code;
-                                var results = (servicespec.InsertReturnIdentity(headmodel) == 1);
+                                if (db.Insertable(headmodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
 
                                 string bodyid = Guid.NewGuid().ToString("D");
                                 bodymodel.ID = bodyid;
-                                bodymodel.HEADERID = id;
+                                bodymodel.HEADERID = inboundHeaderId;
                                 bodymodel.ITEMCODE = code;
+                                bodymodel.QTY = needleQty;
                                 bodymodel.CREATOR = "手持扫描";
                                 bodymodel.CREATETIME = DateTime.Now;
-                                var results1 = (servicespecbody.InsertReturnIdentity(bodymodel) == 1);
-                                if (results & results1)
-                                {
-
-                                    reslutJson.success = true;
-                                    reslutJson.msg = code + "入库单生成成功!";
-                                    bindOkThis = true; // 单针改造：新绑定成功，允许写针清单
-                                }
-                                else
-                                {
-                                    reslutJson.success = false;
-                                    reslutJson.msg = "入库单生成失败：导入数据错误!";
-
-                                }
+                                if (db.Insertable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
                             }
 
-
-                        }
-
-                        // ===== 单针改造：绑定/换绑本盒针清单（Needles 为 null/空时自动生成 50 个 T-随机字符-位置号 临时针号） =====
-                        if (bindOkThis)
-                        {
-                            // A01：严格归属过滤（归属其它盒的条目跳过；多盒无归属/错误归属已在事务前拒绝）
-                            var needlesForBox = NeedleService.FilterByContainerStrict(needleArr, s, list);
-                            if (needlesForBox == null || needlesForBox.Count == 0)
-                            {
-                                needlesForBox = NeedleService.GenerateTempNeedles(NeedleService.TEMP_NEEDLE_COUNT);
-                            }
-                            NeedleService.BindNeedles(dbcontext.Db, s, code, null, needlesForBox, "手持扫描");
+                            NeedleService.BindNeedles(db, s, code, inboundHeaderId, null, needlesForBox, "手持扫描");
+                            reslutJson.success = true;
+                            reslutJson.msg = code + "入库单生成成功!";
                         }
 
                     }
-                    dbcontext.Db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
+                    db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
                 }
                 catch (Exception ee)
                 {
-                    dbcontext.Db.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
+                    db?.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
                     reslutJson.success = false;
                     reslutJson.msg = "入库单生成失败：" + ee.Message;
                 }
