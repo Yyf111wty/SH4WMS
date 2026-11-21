@@ -7931,12 +7931,17 @@ WHERE  a.ZONECODE=@ZONECODE  and  (a.CONTAINER=@CONTAINER  or @CONTAINER='')   a
                 foreach (var item in hobbies)
                 {
                     sql = @"
-                                    SELECT
-                                        b.ITEMCODE
-                                    from wms_bill_putinbindingheader a
-                                    INNER JOIN wms_bill_putinbindingbody  b on a.ID=b.HEADERID
-                                    WHERE a.CONTAINER=@CONTAINER   and  a.STATE=2 ORDER BY a.CREATETIME  DESC
-									";
+                    SELECT h.ID AS OUTBOUNDORDER, b.ITEMCODE
+                    FROM (
+                        SELECT ID
+                        FROM wms_bill_putoutheader
+                        WHERE CONTAINER = @CONTAINER AND STATE IN (2, 3, 5)
+                        ORDER BY CREATETIME DESC, ID DESC
+                        LIMIT 1
+                    ) h
+                    LEFT JOIN wms_bill_putoutbody b ON b.HEADERID = h.ID
+                    ORDER BY b.CREATETIME DESC, b.ID DESC
+                    LIMIT 1";
                     var glist = dbcontext.Db.Ado.GetDataTable(sql, new List<SugarParameter>()
                                 {
 
@@ -7948,17 +7953,31 @@ WHERE  a.ZONECODE=@ZONECODE  and  (a.CONTAINER=@CONTAINER  or @CONTAINER='')   a
                     if (glist != null && glist.Rows.Count > 0)
                     {
                         s.QRCode = item;
-                        s.Content = glist.Rows[0][0].ToString();
+                        string itemCode = glist.Rows[0]["ITEMCODE"].ToString().Trim();
+                        if (string.IsNullOrEmpty(itemCode))
+                        {
+                            s.Content = "缺少出库物料编码";
+                            result.Add(s);
+                            continue;
+                        }
+
                         var needleTable = dbcontext.Db.Ado.GetDataTable(@"
                             SELECT NEEDLENO, POSITIONCODE
                             FROM wms_needle_inventory
                             WHERE CONTAINER = @CONTAINER
-                              AND STATUS <> 'BIND_CANCELLED' and itemcode = @ITEMCODE order by createTIME DESC limit 50",
+                              AND OUTBOUNDORDER = @OUTBOUNDORDER
+                              AND STATUS <> 'BIND_CANCELLED'",
                             new List<SugarParameter>()
                             {
                                 new SugarParameter("@CONTAINER", item),
-                                new SugarParameter ("@ITEMCODE", glist.Rows[0][0].ToString())
+                                new SugarParameter("@OUTBOUNDORDER", glist.Rows[0]["OUTBOUNDORDER"].ToString())
                             });
+                        if (needleTable.Rows.Count == 0)
+                        {
+                            s.Content = "缺少本次出库针记录";
+                            result.Add(s);
+                            continue;
+                        }
 
                         // 数组下标对应盒内槽位，固定保留 50 槽及空槽位的逗号。
                         string[] slots = Enumerable.Repeat(string.Empty, NeedleService.POSITION_MAX).ToArray();
@@ -7983,6 +8002,7 @@ WHERE  a.ZONECODE=@ZONECODE  and  (a.CONTAINER=@CONTAINER  or @CONTAINER='')   a
 
                             slots[position - 1] = needleNo;
                         }
+                        s.Content = itemCode + "-" + needleTable.Rows.Count;
                         s.NeedleNos = string.Join(",", slots);
                     }
                     else
