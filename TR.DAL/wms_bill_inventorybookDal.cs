@@ -40,8 +40,9 @@ namespace TR.DAL
 			   .ToPageList(intPageIndex, intPageSize, ref intTotalCount);
 		}
 
-        // 先按盒聚合单针，避免连接后放大盒数；有历史针记录但在库针数为零时不折算。
-        private const string InventoryGGSql = @"
+        // 全库或宽泛查询（命中盒数较多）走单遍主键顺序扫描聚合，避免关联子查询逐盒回表超时；
+        // 有历史针记录但在库针数为零时不折算。
+        private const string InventoryGGFullSql = @"
 SELECT ANY_VALUE(l.ZONECODE) AS ZONECODE, l.SOURCEORDER,
        COUNT(*) AS NUM,
        SUM(CASE WHEN l.OUTENABLED = 0 THEN 1 ELSE 0 END) AS OCCUPYNUM,
@@ -56,23 +57,57 @@ LEFT JOIN (
     GROUP BY CONTAINER
 ) n ON n.CONTAINER = l.CONTAINER
 WHERE l.CONTAINER <> ''
+  AND (@SourceOrder = '' OR l.SOURCEORDER LIKE CONCAT('%', @SourceOrder, '%'))
 GROUP BY l.SOURCEORDER";
 
+        // 精确/窄范围规格查询（命中盒数 ≤ 1000）走按盒关联子查询，避免扫描整张针表。
+        private const string InventoryGGFilteredSql = @"
+SELECT ANY_VALUE(l.ZONECODE) AS ZONECODE, l.SOURCEORDER,
+       COUNT(*) AS NUM,
+       SUM(CASE WHEN l.OUTENABLED = 0 THEN 1 ELSE 0 END) AS OCCUPYNUM,
+       SUM(COALESCE((
+           SELECT SUM(CASE WHEN n.ENABLED = 1 AND n.STATUS IN
+               ('INBOUND_PENDING', 'AVAILABLE', 'RESERVED', 'QUARANTINED')
+               THEN 1 ELSE 0 END)
+           FROM wms_needle_inventory n
+           WHERE n.CONTAINER = l.CONTAINER
+       ), 50)) AS NEEDLENUM
+FROM wms_base_location l
+WHERE l.CONTAINER <> ''
+  AND l.SOURCEORDER LIKE CONCAT('%', @SourceOrder, '%')
+GROUP BY l.SOURCEORDER";
+
+        private const int FilteredSubqueryBoxThreshold = 1000;
+
         public List<InventoryGGModel> GetGGlist(
-        Expression<Func<InventoryGGModel, bool>> whereExpression,
+            string sourceOrder,
             ref int intTotalCount,
             int intPageIndex = 0,
             int intPageSize = 20,
             string strOrderByFileds = null,
             InventoryGGModel summary = null)
         {
+            string keyword = (sourceOrder ?? string.Empty).Trim();
+
             // 这里只返回规格汇总行（非单针明细），一次查询后分页、合计，
             // 避免 ToPageList 计数和独立总计反复执行针表聚合。
-            // 针表按主键顺序扫描，避免非覆盖盒号索引逐针回表。
-            var rows = db.SqlQueryable<InventoryGGModel>(InventoryGGSql)
-               .OrderByIF(!string.IsNullOrEmpty(strOrderByFileds), strOrderByFileds)
-               .WhereIF(whereExpression != null, whereExpression)
-               .ToList();
+            var rows = TR.ORM.SqlSugarClientFactory.ExecuteWithRetry(() =>
+            {
+                bool useFilteredSubquery = false;
+                if (!string.IsNullOrEmpty(keyword))
+                {
+                    int matchedBoxes = db.Ado.GetInt(
+                        "SELECT COUNT(*) FROM wms_base_location WHERE CONTAINER <> '' AND SOURCEORDER LIKE CONCAT('%', @SourceOrder, '%')",
+                        new[] { new SugarParameter("@SourceOrder", keyword) });
+                    useFilteredSubquery = matchedBoxes <= FilteredSubqueryBoxThreshold;
+                }
+
+                string sql = useFilteredSubquery ? InventoryGGFilteredSql : InventoryGGFullSql;
+                return db.SqlQueryable<InventoryGGModel>(sql)
+                    .AddParameters(new[] { new SugarParameter("@SourceOrder", keyword) })
+                    .OrderByIF(!string.IsNullOrEmpty(strOrderByFileds), strOrderByFileds)
+                    .ToList();
+            });
             intTotalCount = rows.Count;
             if (summary != null)
             {

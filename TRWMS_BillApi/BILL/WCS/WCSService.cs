@@ -5,6 +5,7 @@ using Org.BouncyCastle.Asn1.Cmp;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Utilities;
 using SqlSugar;
+using SqlSugar.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,6 +29,7 @@ using System.Web.UI.WebControls;
 using System.Windows.Input;
 using System.Xml;
 using System.Xml.Linq;
+using TR.ORM;
 using TR.ORM.Model;
 using TR.Service;
 using TRWMS_BillApi.Models.Request;
@@ -10692,7 +10694,8 @@ VALUES
         }
         public async Task<ReslutJson> CreatePutInfoByLookupAsync(JObject json, string ip)
         {
-            LOGService.WriteWcsRequestLog(context, json, "开始修改巷道状态", "WCS巷道管理");
+            SqlSugarClientFactory.ExecuteWithoutRequestSynchronizationContext(() =>
+                LOGService.WriteWcsRequestLog(context, json, "开始修改巷道状态", "WCS巷道管理"));
             ReslutJson reslutJson = new ReslutJson();
 
             string lane = json["lane"].ToString().Trim();
@@ -10731,7 +10734,8 @@ VALUES
         //研磨机生成入库单
         public async Task<ReslutJson> UpdateContainer(JObject json, string ip)
         {
-            LOGService.WriteWcsRequestLog(context, json, "开始执行生成入库单", "获取研磨机数据生成入库单");
+            SqlSugarClientFactory.ExecuteWithoutRequestSynchronizationContext(() =>
+                LOGService.WriteWcsRequestLog(context, json, "开始执行生成入库单", "获取研磨机数据生成入库单"));
             ReslutJson reslutJson = new ReslutJson();
 
             string newCode = json["newCode"].ToString().Trim();
@@ -10762,113 +10766,117 @@ VALUES
             {
                 reslutJson.success = false;
                 reslutJson.msg = "入库单生成失败：未查到托盘数据!";
-                LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "翻盒机扫码生成入库单");
+                SqlSugarClientFactory.ExecuteWithoutRequestSynchronizationContext(() =>
+                    LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "翻盒机扫码生成入库单"));
                 return reslutJson;
             }
 
-            LOGService.WriteWcsRequestLog(context, json, $"获取数据成功：托盘号：{barlist},规格：{code}", "获取研磨机数据生成入库单");
-            if (string.IsNullOrEmpty(barlist) || string.IsNullOrEmpty(code))
+            SqlSugarClientFactory.ExecuteWithoutRequestSynchronizationContext(() =>
             {
-                reslutJson.success = false;
-                reslutJson.msg = "入库单生成失败：条码或规格均不能为空!";
-            }
-            else
-            {
-                SqlSugarClient db = null;
-                try
+                LOGService.WriteWcsRequestLog(context, json, $"获取数据成功：托盘号：{barlist},规格：{code}", "获取研磨机数据生成入库单");
+                if (string.IsNullOrEmpty(barlist) || string.IsNullOrEmpty(code))
                 {
-                    // ===== 单针改造：研磨机换码入库，可选针清单参数 Needles（不传则完全维持旧行为）；单据与针清单同事务 =====
-                    JToken needlesToken = json["Needles"] != null ? json["Needles"] : json["needles"];
-                    JArray needleArr = needlesToken as JArray;
-                    string[] list = null;
-                    if (barlist.Substring(barlist.Length - 1, 1) != "/")
+                    reslutJson.success = false;
+                    reslutJson.msg = "入库单生成失败：条码或规格均不能为空!";
+                }
+                else
+                {
+                    SqlSugarClient db = null;
+                    try
                     {
-                        list = new string[] { barlist };
-                    }
-                    else
-                    {
-
-                        list = barlist.Substring(0, barlist.Length - 1).Split('/');
-
-                    }
-                    // ===== A01：多盒请求针归属强校验（无归属/归属不在本次盒号列表 → 整笔拒绝，不开事务不留数据） =====
-                    NeedleService.FilterByContainerStrict(needleArr, list[0], list);
-                    db = dbcontext.Db;
-                    db.Ado.BeginTran();
-                    foreach (string s in list)
-                    {
-                        //判定是否重复绑定
-                        bool inStock = db.Queryable<wms_base_location>().Where(x => x.CONTAINER == s).Any();
-                        var existingHeader = db.Queryable<wms_bill_putinbindingheader>().Where(x => x.CONTAINER == s && x.STATE < 2).ToList().FirstOrDefault();
-                        if (inStock)
+                        // ===== 单针改造：研磨机换码入库，可选针清单参数 Needles（不传则完全维持旧行为）；单据与针清单同事务 =====
+                        JToken needlesToken = json["Needles"] != null ? json["Needles"] : json["needles"];
+                        JArray needleArr = needlesToken as JArray;
+                        string[] list = null;
+                        if (barlist.Substring(barlist.Length - 1, 1) != "/")
                         {
-                            reslutJson.success = false;
-                            reslutJson.msg = s + "入库单生成失败：库中已存在该条码!";
+                            list = new string[] { barlist };
                         }
                         else
                         {
 
-                            var needlesForBox = NeedleService.FilterByContainerStrict(needleArr, s, list)
-                                ?? NeedleService.GenerateTempNeedles(NeedleService.TEMP_NEEDLE_COUNT);
-                            int needleQty = needlesForBox.Count;
-                            string inboundHeaderId;
-                            if (existingHeader != null)//已绑定则覆盖
+                            list = barlist.Substring(0, barlist.Length - 1).Split('/');
+
+                        }
+                        // ===== A01：多盒请求针归属强校验（无归属/归属不在本次盒号列表 → 整笔拒绝，不开事务不留数据） =====
+                        NeedleService.FilterByContainerStrict(needleArr, list[0], list);
+                        db = dbcontext.Db;
+                        db.Ado.BeginTran();
+                        foreach (string s in list)
+                        {
+                            //判定是否重复绑定
+                            bool inStock = db.Queryable<wms_base_location>().Where(x => x.CONTAINER == s).Any();
+                            var existingHeader = db.Queryable<wms_bill_putinbindingheader>().Where(x => x.CONTAINER == s && x.STATE < 2).ToList().FirstOrDefault();
+                            if (inStock)
                             {
-                                inboundHeaderId = existingHeader.ID;
-                                var bodymodel = db.Queryable<wms_bill_putinbindingbody>().Where(x => x.HEADERID == inboundHeaderId).ToList().FirstOrDefault();
-                                if (bodymodel == null) throw new Exception("找不到入库单明细!");
-                                bodymodel.ITEMCODE = code;
-                                bodymodel.QTY = needleQty;
-                                bodymodel.CREATOR = "手持扫描";
-                                bodymodel.CREATETIME = DateTime.Now;
-                                if (db.Updateable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
+                                reslutJson.success = false;
+                                reslutJson.msg = s + "入库单生成失败：库中已存在该条码!";
                             }
                             else
                             {
-                                inboundHeaderId = Guid.NewGuid().ToString("D");
-                                wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
-                                wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
 
-                                headmodel.ID = inboundHeaderId;
-                                headmodel.SOURCEORDER = s;
-                                headmodel.CONTAINER = s;
-                                headmodel.CONTAINERTYPE = "0";
-                                headmodel.QUESTFLAG = 0;
-                                headmodel.STATE = 0;
-                                headmodel.TARGET = "101";
-                                headmodel.ENABLED = 1;
-                                headmodel.REMARK = "入库";
-                                headmodel.CREATOR = "手持扫描";
-                                headmodel.CREATETIME = DateTime.Now;
-                                headmodel.Specifications = code;
-                                if (db.Insertable(headmodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
+                                var needlesForBox = NeedleService.FilterByContainerStrict(needleArr, s, list)
+                                    ?? NeedleService.GenerateTempNeedles(NeedleService.TEMP_NEEDLE_COUNT);
+                                int needleQty = needlesForBox.Count;
+                                string inboundHeaderId;
+                                if (existingHeader != null)//已绑定则覆盖
+                                {
+                                    inboundHeaderId = existingHeader.ID;
+                                    var bodymodel = db.Queryable<wms_bill_putinbindingbody>().Where(x => x.HEADERID == inboundHeaderId).ToList().FirstOrDefault();
+                                    if (bodymodel == null) throw new Exception("找不到入库单明细!");
+                                    bodymodel.ITEMCODE = code;
+                                    bodymodel.QTY = needleQty;
+                                    bodymodel.CREATOR = "手持扫描";
+                                    bodymodel.CREATETIME = DateTime.Now;
+                                    if (db.Updateable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
+                                }
+                                else
+                                {
+                                    inboundHeaderId = Guid.NewGuid().ToString("D");
+                                    wms_bill_putinbindingheader headmodel = new wms_bill_putinbindingheader();
+                                    wms_bill_putinbindingbody bodymodel = new wms_bill_putinbindingbody();
 
-                                string bodyid = Guid.NewGuid().ToString("D");
-                                bodymodel.ID = bodyid;
-                                bodymodel.HEADERID = inboundHeaderId;
-                                bodymodel.ITEMCODE = code;
-                                bodymodel.QTY = needleQty;
-                                bodymodel.CREATOR = "手持扫描";
-                                bodymodel.CREATETIME = DateTime.Now;
-                                if (db.Insertable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
+                                    headmodel.ID = inboundHeaderId;
+                                    headmodel.SOURCEORDER = s;
+                                    headmodel.CONTAINER = s;
+                                    headmodel.CONTAINERTYPE = "0";
+                                    headmodel.QUESTFLAG = 0;
+                                    headmodel.STATE = 0;
+                                    headmodel.TARGET = "101";
+                                    headmodel.ENABLED = 1;
+                                    headmodel.REMARK = "入库";
+                                    headmodel.CREATOR = "手持扫描";
+                                    headmodel.CREATETIME = DateTime.Now;
+                                    headmodel.Specifications = code;
+                                    if (db.Insertable(headmodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
+
+                                    string bodyid = Guid.NewGuid().ToString("D");
+                                    bodymodel.ID = bodyid;
+                                    bodymodel.HEADERID = inboundHeaderId;
+                                    bodymodel.ITEMCODE = code;
+                                    bodymodel.QTY = needleQty;
+                                    bodymodel.CREATOR = "手持扫描";
+                                    bodymodel.CREATETIME = DateTime.Now;
+                                    if (db.Insertable(bodymodel).ExecuteCommand() != 1) throw new Exception("导入数据错误!");
+                                }
+
+                                NeedleService.BindNeedles(db, s, code, inboundHeaderId, null, needlesForBox, "手持扫描");
+                                reslutJson.success = true;
+                                reslutJson.msg = code + "入库单生成成功!";
                             }
 
-                            NeedleService.BindNeedles(db, s, code, inboundHeaderId, null, needlesForBox, "手持扫描");
-                            reslutJson.success = true;
-                            reslutJson.msg = code + "入库单生成成功!";
                         }
-
+                        db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
                     }
-                    db.Ado.CommitTran(); // 单针改造：单据+针清单同事务提交
+                    catch (Exception ee)
+                    {
+                        db?.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
+                        reslutJson.success = false;
+                        reslutJson.msg = "入库单生成失败：" + ee.Message;
+                    }
                 }
-                catch (Exception ee)
-                {
-                    db?.Ado.RollbackTran(); // 单针改造：任一环节异常整体回滚
-                    reslutJson.success = false;
-                    reslutJson.msg = "入库单生成失败：" + ee.Message;
-                }
-            }
-            LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "翻盒机扫码生成入库单");
+                LOGService.WriteWcsRequestLog(context, json, reslutJson.msg, "翻盒机扫码生成入库单");
+            });
             return reslutJson;
         }
         public string ConvertCode(string code)

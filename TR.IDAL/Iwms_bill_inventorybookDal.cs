@@ -24,7 +24,7 @@ namespace TR.IDAL
 			  int intPageSize = 20,
 			  string strOrderByFileds = null);
         List<InventoryGGModel> GetGGlist(
-          Expression<Func<InventoryGGModel, bool>> whereExpression,
+          string sourceOrder,
               ref int intTotalCount,
               int intPageIndex = 0,
               int intPageSize = 20,

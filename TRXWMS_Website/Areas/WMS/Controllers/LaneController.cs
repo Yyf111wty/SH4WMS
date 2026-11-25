@@ -8,6 +8,7 @@ using System.Reflection.Emit;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
+using TR.ORM;
 using TRXWMS.BILL.DAL;
 
 namespace TRXWMS_Website.Areas.WMS.Controllers
@@ -77,11 +78,12 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
                 }
                 Console.WriteLine("调用WCS接口成功，开始修改数据库状态");
                 string sql = "UPDATE wms_base_location SET ENABLED=@enabled WHERE TUNNELNUM=@Lane";
-                int rows = dbcontext.Db.Ado.ExecuteCommand(sql, new List<SugarParameter>()
-                {
-                    new SugarParameter("@enabled", enabled),
-                    new SugarParameter("@Lane", lane),
-                });
+                int rows = SqlSugarClientFactory.ExecuteWithoutRequestSynchronizationContext(() =>
+                    dbcontext.Db.Ado.ExecuteCommand(sql, new List<SugarParameter>()
+                    {
+                        new SugarParameter("@enabled", enabled),
+                        new SugarParameter("@Lane", lane),
+                    }));
                 Console.WriteLine($"修改数据库状态成功，影响行数：{rows}");
                 bool result = rows > 0 ? true : false;
                 return Json(new

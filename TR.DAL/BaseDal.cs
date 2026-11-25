@@ -118,12 +118,14 @@ namespace TR.DAL
                     && PageTotalCacheSeconds > 0
                     && TryGetCachedTotal(query, out cacheKey, out cachedTotal))
                 {
-                    count = cachedTotal;
-                    return query.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+                    List<T> cachedPageList = query.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+                    totalCount = cachedTotal;
+                    return cachedPageList;
                 }
 
                 List<T> pageList = query.ToPageList(pageIndex, pageSize, ref count);
                 SaveCachedTotal(query, cacheKey, count);
+                totalCount = count;
                 return pageList;
             });
             intTotalCount = totalCount;

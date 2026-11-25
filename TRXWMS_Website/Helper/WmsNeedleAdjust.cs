@@ -66,31 +66,36 @@ UPDATE wms_needle_inventory
    SET STATUS='ADJUSTED_OUT', LASTEDITOR=@usr, LASTEDITTIME=sysdate()
  WHERE CONTAINER=@ctn AND ENABLED=1 AND STATUS IN " + PENDING_STATUSES;
 
-            SqlSugarClient db = CreateIndependentClient();
-            int flipped = 0;
-            int txn = 0;
-
-            // 手动事务（与 BillApi NeedleService 同款 API，BeginTran/Commit/Rollback 在
-            // SqlSugar 5.1.4.x 均已验证可用；独立客户端自开自闭，不影响共享单例事务状态）
-            db.Ado.BeginTran();
-            try
+            return SqlSugarClientFactory.ExecuteWithoutRequestSynchronizationContext(() =>
             {
-                txn = db.Ado.ExecuteCommand(sqlTxn, ps);
-                flipped = db.Ado.ExecuteCommand(sqlUpd, ps);
-                if (txn != flipped)
+                using (SqlSugarClient db = CreateIndependentClient())
                 {
-                    // 履历与当前表必须同数，异常（并发翻转等）时整体回滚
-                    throw new Exception("单针调整出库履历与状态更新行数不一致，操作已回滚");
-                }
-                db.Ado.CommitTran();
-            }
-            catch
-            {
-                db.Ado.RollbackTran();
-                throw;
-            }
+                    int flipped = 0;
+                    int txn = 0;
 
-            return flipped;
+                    // 手动事务（与 BillApi NeedleService 同款 API，BeginTran/Commit/Rollback 在
+                    // SqlSugar 5.1.4.x 均已验证可用；独立客户端自开自闭，不影响共享单例事务状态）
+                    db.Ado.BeginTran();
+                    try
+                    {
+                        txn = db.Ado.ExecuteCommand(sqlTxn, ps);
+                        flipped = db.Ado.ExecuteCommand(sqlUpd, ps);
+                        if (txn != flipped)
+                        {
+                            // 履历与当前表必须同数，异常（并发翻转等）时整体回滚
+                            throw new Exception("单针调整出库履历与状态更新行数不一致，操作已回滚");
+                        }
+                        db.Ado.CommitTran();
+                    }
+                    catch
+                    {
+                        db.Ado.RollbackTran();
+                        throw;
+                    }
+
+                    return flipped;
+                }
+            });
         }
 
         /// <summary>

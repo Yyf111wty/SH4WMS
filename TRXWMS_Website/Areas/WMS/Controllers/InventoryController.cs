@@ -499,15 +499,16 @@ WHERE ZONECODE = @ZONECODE AND LOCATIONCODE = @LOCATIONCODE AND OUTENABLED = 1",
 
             try
             {
-                System.Linq.Expressions.Expression<Func<InventoryGGModel, bool>> filter =
-                    a => String.IsNullOrEmpty(model.SOURCEORDER) || a.SOURCEORDER.Contains(model.SOURCEORDER);
                 var summary = new InventoryGGModel();
-                var lists = service.GetGGlist(filter, ref TotalCount, pageId, pageSize, "SOURCEORDER", summary);
+                var lists = service.GetGGlist(model.SOURCEORDER, ref TotalCount, pageId, pageSize, "SOURCEORDER", summary);
                 return Json(new { total = TotalCount, rows = lists ?? new List<InventoryGGModel>(), summary }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
-                return Json(new { total = 0, rows = new List<InventoryGGModel>(), msg = ex.Message }, JsonRequestBehavior.AllowGet);
+                string detail = ex.InnerException != null && !string.IsNullOrWhiteSpace(ex.InnerException.Message)
+                    ? ex.Message + " (" + ex.InnerException.Message + ")"
+                    : ex.Message;
+                return Json(new { total = 0, rows = new List<InventoryGGModel>(), msg = detail }, JsonRequestBehavior.AllowGet);
             }
         }
 

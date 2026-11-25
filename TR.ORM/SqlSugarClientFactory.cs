@@ -6,6 +6,7 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace TR.ORM
 {
@@ -113,7 +114,10 @@ namespace TR.ORM
 
             if (scope.TranDepth == 0)
             {
-                scope.Client.Ado.BeginTran();
+                using (SuppressRequestSynchronizationContext())
+                {
+                    scope.Client.Ado.BeginTran();
+                }
             }
 
             scope.TranDepth++;
@@ -130,7 +134,10 @@ namespace TR.ORM
             scope.TranDepth--;
             if (scope.TranDepth == 0)
             {
-                scope.Client.Ado.CommitTran();
+                using (SuppressRequestSynchronizationContext())
+                {
+                    scope.Client.Ado.CommitTran();
+                }
             }
         }
 
@@ -143,12 +150,15 @@ namespace TR.ORM
             }
 
             scope.TranDepth = 0;
-            try
+            using (SuppressRequestSynchronizationContext())
             {
-                scope.Client.Ado.RollbackTran();
-            }
-            catch
-            {
+                try
+                {
+                    scope.Client.Ado.RollbackTran();
+                }
+                catch
+                {
+                }
             }
         }
 
@@ -172,29 +182,32 @@ namespace TR.ORM
                 return;
             }
 
-            if (scope.TranDepth > 0)
+            using (SuppressRequestSynchronizationContext())
             {
-                Interlocked.Increment(ref _tranAutoRollback);
+                if (scope.TranDepth > 0)
+                {
+                    Interlocked.Increment(ref _tranAutoRollback);
+                    try
+                    {
+                        scope.Client.Ado.RollbackTran();
+                    }
+                    catch
+                    {
+                    }
+                    scope.TranDepth = 0;
+                }
+
                 try
                 {
-                    scope.Client.Ado.RollbackTran();
+                    scope.Client.Dispose();
                 }
                 catch
                 {
                 }
-                scope.TranDepth = 0;
-            }
-
-            try
-            {
-                scope.Client.Dispose();
-            }
-            catch
-            {
-            }
-            finally
-            {
-                Interlocked.Increment(ref _clientsDisposed);
+                finally
+                {
+                    Interlocked.Increment(ref _clientsDisposed);
+                }
             }
         }
 
@@ -221,6 +234,92 @@ namespace TR.ORM
                 created, disposed, created - disposed, autoRollback, depth);
         }
 
+        /// <summary>
+        /// 执行同步数据库操作，防止 MySql.Data 8.0.33 在打开/释放连接时等待当前同步上下文造成死锁。
+        /// </summary>
+        public static T ExecuteWithoutRequestSynchronizationContext<T>(Func<T> action)
+        {
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+
+            if (typeof(Task).IsAssignableFrom(typeof(T)))
+            {
+                throw new InvalidOperationException("ExecuteWithoutRequestSynchronizationContext 仅支持同步操作，禁止传入异步委托。");
+            }
+
+            using (SuppressRequestSynchronizationContext())
+            {
+                return action();
+            }
+        }
+
+        /// <summary>
+        /// 执行无返回值的同步数据库操作，防止 MySql.Data 8.0.33 在打开/释放连接时等待当前同步上下文造成死锁。
+        /// </summary>
+        public static void ExecuteWithoutRequestSynchronizationContext(Action action)
+        {
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+
+            using (SuppressRequestSynchronizationContext())
+            {
+                action();
+            }
+        }
+
+        /// <summary>
+        /// 临时压制当前线程的 SynchronizationContext，供 Web 管道对同步 Action 统一收口使用。
+        /// 调用方必须在同一线程通过 using/Dispose 及时恢复；不要跨 await 使用。
+        /// </summary>
+        public static IDisposable SuppressSynchronizationContext()
+        {
+            return SuppressRequestSynchronizationContext();
+        }
+
+        private static IDisposable SuppressRequestSynchronizationContext()
+        {
+            var context = SynchronizationContext.Current;
+            if (context == null)
+            {
+                return null;
+            }
+
+            var scope = new RequestSynchronizationContextScope(context);
+            SynchronizationContext.SetSynchronizationContext(null);
+            return scope;
+        }
+
+        private sealed class RequestSynchronizationContextScope : IDisposable
+        {
+            private readonly SynchronizationContext _previousContext;
+            private readonly int _threadId;
+            private bool _disposed;
+
+            public RequestSynchronizationContextScope(SynchronizationContext previousContext)
+            {
+                _previousContext = previousContext;
+                _threadId = Thread.CurrentThread.ManagedThreadId;
+            }
+
+            public void Dispose()
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+                if (Thread.CurrentThread.ManagedThreadId == _threadId)
+                {
+                    SynchronizationContext.SetSynchronizationContext(_previousContext);
+                }
+            }
+        }
+
         public static T ExecuteWithRetry<T>(Func<T> action, int maxAttempts = 2)
         {
             if (action == null)
@@ -233,27 +332,30 @@ namespace TR.ORM
                 maxAttempts = 1;
             }
 
-            Exception last = null;
-            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            using (SuppressRequestSynchronizationContext())
             {
-                try
+                Exception last = null;
+                for (int attempt = 1; attempt <= maxAttempts; attempt++)
                 {
-                    return action();
-                }
-                catch (Exception ex)
-                {
-                    last = ex;
-                    if (attempt >= maxAttempts || !IsTransientConnectionError(ex))
+                    try
                     {
-                        throw;
+                        return action();
                     }
+                    catch (Exception ex)
+                    {
+                        last = ex;
+                        if (attempt >= maxAttempts || !IsTransientConnectionError(ex))
+                        {
+                            throw;
+                        }
 
-                    ResetClient();
-                    Thread.Sleep(150 * attempt);
+                        ResetClient();
+                        Thread.Sleep(150 * attempt);
+                    }
                 }
-            }
 
-            throw last ?? new Exception("数据库操作失败");
+                throw last ?? new Exception("数据库操作失败");
+            }
         }
 
         public static void ExecuteWithRetry(Action action, int maxAttempts = 2)

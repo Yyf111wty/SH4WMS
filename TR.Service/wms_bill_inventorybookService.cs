@@ -40,7 +40,7 @@ namespace TR.Service
 
         }
         public List<InventoryGGModel> GetGGlist(
-      Expression<Func<InventoryGGModel, bool>> whereExpression,
+      string sourceOrder,
           ref int intTotalCount,
           int intPageIndex = 0,
           int intPageSize = 20,
@@ -48,7 +48,7 @@ namespace TR.Service
           InventoryGGModel summary = null)
         {
 
-            return dbSession.Getwms_bill_inventorybookDal().GetGGlist(whereExpression, ref intTotalCount, intPageIndex, intPageSize, strOrderByFileds, summary);
+            return dbSession.Getwms_bill_inventorybookDal().GetGGlist(sourceOrder, ref intTotalCount, intPageIndex, intPageSize, strOrderByFileds, summary);
 
 
 
