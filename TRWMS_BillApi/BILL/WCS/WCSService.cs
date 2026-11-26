@@ -7967,7 +7967,7 @@ WHERE  a.ZONECODE=@ZONECODE  and  (a.CONTAINER=@CONTAINER  or @CONTAINER='')   a
                             SELECT NEEDLENO, POSITIONCODE
                             FROM wms_needle_inventory
                             WHERE CONTAINER = @CONTAINER
-                              AND OUTBOUNDORDER = @OUTBOUNDORDER
+                              AND RESERVEORDER = @OUTBOUNDORDER
                               AND STATUS <> 'BIND_CANCELLED'",
                             new List<SugarParameter>()
                             {

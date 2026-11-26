@@ -4,6 +4,7 @@
 // * FileName: NeedleController.cs
 // * history : 单针改造·查询页面批次（单针追溯查询 + 盒内针明细）
 //-----------------------------------------------------------------------
+using SqlSugar;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -41,7 +42,7 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
         }
 
         /// <summary>
-        /// 单针分页查询：针号/盒号/规格模糊，状态精确；仅有效行(ENABLED=1)
+        /// 单针分页查询：针号、盒号和规格按前缀匹配，状态精确匹配，仅查询有效行（ENABLED=1）。
         /// </summary>
         public ActionResult GetRowData(string NEEDLENO, string CONTAINER, string ITEMCODE, string STATUS)
         {
@@ -56,8 +57,6 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
 
             try
             {
-                // 空关键字不再拼成 LIKE '%%'：709k 行的针表上 LIKE '%%' 会导致全表回表扫描（实测 5 秒）。
-                // 条件为空时直接省略该过滤，语义与原来完全一致（原写法为空串时恒为真）。
                 lists = _inventoryService.QueryPage(
                     BuildInventoryFilter(needleNo, container, itemCode, status),
                     ref totalCount, pageId, pageSize, BuildOrderBy(Request["field"], Request["order"]));
@@ -71,7 +70,7 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
         }
 
         /// <summary>
-        /// 组合查询条件：只把用户真实填写的关键字加入 SQL，避免生成 LIKE '%%'。
+        /// 组合非空筛选条件，针号、盒号和规格使用参数化的前缀匹配。
         /// </summary>
         private static System.Linq.Expressions.Expression<Func<wms_needle_inventory, bool>> BuildInventoryFilter(
             string needleNo, string container, string itemCode, string status)
@@ -81,11 +80,11 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
                 System.Linq.Expressions.Expression.Property(parameter, "ENABLED"),
                 System.Linq.Expressions.Expression.Constant(1));
 
-            var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+            var likeMethod = typeof(SqlFunc).GetMethod(nameof(SqlFunc.Like), new[] { typeof(string), typeof(string) });
 
-            AppendContains(ref body, parameter, containsMethod, "NEEDLENO", needleNo);
-            AppendContains(ref body, parameter, containsMethod, "CONTAINER", container);
-            AppendContains(ref body, parameter, containsMethod, "ITEMCODE", itemCode);
+            AppendPrefixMatch(ref body, parameter, likeMethod, nameof(wms_needle_inventory.NEEDLENO), needleNo);
+            AppendPrefixMatch(ref body, parameter, likeMethod, nameof(wms_needle_inventory.CONTAINER), container);
+            AppendPrefixMatch(ref body, parameter, likeMethod, nameof(wms_needle_inventory.ITEMCODE), itemCode);
 
             if (!string.IsNullOrEmpty(status))
             {
@@ -99,22 +98,23 @@ namespace TRXWMS_Website.Areas.WMS.Controllers
             return System.Linq.Expressions.Expression.Lambda<Func<wms_needle_inventory, bool>>(body, parameter);
         }
 
-        private static void AppendContains(
+        private static void AppendPrefixMatch(
             ref System.Linq.Expressions.Expression body,
             System.Linq.Expressions.ParameterExpression parameter,
-            System.Reflection.MethodInfo containsMethod,
+            System.Reflection.MethodInfo likeMethod,
             string propertyName,
             string keyword)
         {
-            if (string.IsNullOrEmpty(keyword) || containsMethod == null)
+            if (string.IsNullOrEmpty(keyword))
             {
                 return;
             }
 
+            var pattern = keyword.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
             var call = System.Linq.Expressions.Expression.Call(
+                likeMethod,
                 System.Linq.Expressions.Expression.Property(parameter, propertyName),
-                containsMethod,
-                System.Linq.Expressions.Expression.Constant(keyword));
+                System.Linq.Expressions.Expression.Constant(pattern));
 
             body = System.Linq.Expressions.Expression.AndAlso(body, call);
         }
